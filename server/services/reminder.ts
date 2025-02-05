@@ -1,9 +1,10 @@
 import { db } from '../db';
 import { storage } from '../storage';
 import { sendTaskReminder } from './sms';
-import { lt, eq, and, isNotNull } from 'drizzle-orm';
+import { lt, eq, and, isNotNull, gte } from 'drizzle-orm';
 import { tasks } from '@shared/schema';
-import { toZonedTime } from 'date-fns-tz';
+import { toZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { subMinutes } from 'date-fns';
 
 const TIMEZONE = 'Asia/Jerusalem';
 
@@ -13,7 +14,10 @@ export async function checkAndSendReminders() {
     const now = new Date();
     const israelTime = toZonedTime(now, TIMEZONE);
 
-    // Get all tasks that have reminders due and haven't been sent yet
+    // Get the time 1 minute ago to create a window for reminders
+    const oneMinuteAgo = subMinutes(israelTime, 1);
+
+    // Get all tasks that have reminders due in the last minute and haven't been sent yet
     const pendingReminders = await db
       .select()
       .from(tasks)
@@ -21,12 +25,13 @@ export async function checkAndSendReminders() {
         and(
           eq(tasks.smsReminderSent, false),
           lt(tasks.reminderTime, israelTime),
+          gte(tasks.reminderTime, oneMinuteAgo),
           eq(tasks.completed, false),
           isNotNull(tasks.assignedTo)
         )
       );
 
-    console.log(`Found ${pendingReminders.length} pending reminders to process`);
+    console.log(`Found ${pendingReminders.length} pending reminders to process within the last minute window`);
 
     for (const task of pendingReminders) {
       if (!task.assignedTo) continue;
@@ -59,6 +64,23 @@ export async function checkAndSendReminders() {
       } catch (error) {
         console.error(`Failed to process reminder for task ${task.id}:`, error);
       }
+    }
+
+    // Mark old unprocessed reminders as sent to prevent them from being processed
+    const oldReminders = await db
+      .update(tasks)
+      .set({ smsReminderSent: true })
+      .where(
+        and(
+          eq(tasks.smsReminderSent, false),
+          lt(tasks.reminderTime, oneMinuteAgo),
+          isNotNull(tasks.assignedTo)
+        )
+      )
+      .returning();
+
+    if (oldReminders.length > 0) {
+      console.log(`Marked ${oldReminders.length} old reminders as sent to prevent processing`);
     }
   } catch (error) {
     console.error('Error checking reminders:', error);
