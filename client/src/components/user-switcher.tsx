@@ -2,12 +2,20 @@ import { useState } from "react";
 import { type User } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserCog, Pencil, Check, X } from "lucide-react";
+import { UserCog, Pencil, Check, X, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface UserSwitcherProps {
   users: User[];
@@ -20,21 +28,24 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
+  const [editPhoneNumber, setEditPhoneNumber] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { mutate: updateName, isPending } = useMutation({
-    mutationFn: async ({ id, name }: { id: number; name: string }) => {
-      const res = await apiRequest("PATCH", `/api/users/${id}`, { name });
+  const { mutate: updateUser, isPending } = useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: Partial<User> }) => {
+      const res = await apiRequest("PATCH", `/api/users/${id}`, updates);
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to update name');
+        throw new Error(data.message || 'Failed to update user');
       }
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setEditingId(null);
+      setDialogOpen(false);
       toast({
-        description: t('users.nameUpdated', { name: data.name })
+        description: t('users.updated', { name: data.name })
       });
     },
     onError: (error: Error) => {
@@ -48,17 +59,27 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
   const handleEdit = (user: User) => {
     setEditingId(user.id);
     setEditName(user.name);
+    setEditPhoneNumber(user.phoneNumber || "");
+    setDialogOpen(true);
   };
 
   const handleSave = (id: number) => {
     if (editName.trim()) {
-      updateName({ id, name: editName.trim() });
+      updateUser({
+        id,
+        updates: {
+          name: editName.trim(),
+          phoneNumber: editPhoneNumber.trim() || null
+        }
+      });
     }
   };
 
   const handleCancel = () => {
     setEditingId(null);
     setEditName("");
+    setEditPhoneNumber("");
+    setDialogOpen(false);
   };
 
   return (
@@ -88,60 +109,58 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
                 {user.name[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            {editingId === user.id ? (
+            <span>{user.name}'s {t('tasks.label')}</span>
+            {user.phoneNumber && (
+              <Phone className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-10 w-10"
+            onClick={() => handleEdit(user)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('users.edit')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{t('users.name')}</Label>
               <Input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="h-7 w-24"
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSave(user.id);
-                  } else if (e.key === 'Escape') {
-                    handleCancel();
-                  }
-                  e.stopPropagation();
-                }}
+                placeholder={t('users.namePlaceholder')}
                 disabled={isPending}
-                autoFocus
               />
-            ) : (
-              <span>{user.name}'s {t('tasks.label')}</span>
-            )}
-          </Button>
-          {editingId === user.id ? (
-            <>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-10 w-10"
-                onClick={() => handleSave(user.id)}
+            </div>
+            <div className="space-y-2">
+              <Label>{t('users.phoneNumber')}</Label>
+              <Input
+                value={editPhoneNumber}
+                onChange={(e) => setEditPhoneNumber(e.target.value)}
+                placeholder={t('users.phoneNumberPlaceholder')}
+                type="tel"
                 disabled={isPending}
-              >
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-10 w-10"
-                onClick={handleCancel}
-                disabled={isPending}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </>
-          ) : (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-10 w-10"
-              onClick={() => handleEdit(user)}
-            >
-              <Pencil className="h-4 w-4" />
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleCancel} disabled={isPending}>
+              {t('common.cancel')}
             </Button>
-          )}
-        </div>
-      ))}
+            <Button onClick={() => editingId && handleSave(editingId)} disabled={isPending}>
+              {t('common.save')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
