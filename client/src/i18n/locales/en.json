@@ -1,0 +1,73 @@
+{
+  "app": {
+    "title": "Family Tasks",
+    "loading": "Loading tasks...",
+    "noTasks": {
+      "title": "No tasks found",
+      "description": "No tasks have been created yet.",
+      "userDescription": "{{name}} has no tasks yet.",
+      "cta": "Create a new task to get started!"
+    }
+  },
+  "tasks": {
+    "form": {
+      "title": {
+        "label": "Task Title",
+        "placeholder": "What needs to be done?",
+        "description": "Enter a clear, descriptive title for the task"
+      },
+      "description": {
+        "label": "Description (Optional)",
+        "placeholder": "Add some details about what needs to be done...",
+        "description": "Include any additional details that would help complete the task"
+      },
+      "priority": {
+        "label": "Priority Level",
+        "description": "Set the importance level of this task",
+        "placeholder": "Select priority"
+      },
+      "assignTo": {
+        "label": "Assign To",
+        "placeholder": "Select family member",
+        "description": "Choose who should complete this task",
+        "unassigned": "Unassigned"
+      },
+      "dueDate": {
+        "label": "Due Date",
+        "description": "When does this task need to be completed?"
+      },
+      "reminder": {
+        "label": "Set Reminder",
+        "description": "When should we remind you about this task?"
+      },
+      "submit": {
+        "default": "Create Task",
+        "loading": "Creating Task..."
+      }
+    },
+    "status": {
+      "completed": "Completed",
+      "overdue": "Overdue",
+      "dueToday": "Due Today",
+      "unassigned": "Unassigned"
+    },
+    "priority": {
+      "low": "Low Priority",
+      "medium": "Medium Priority",
+      "high": "High Priority"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "success": {
+      "taskCreated": {
+        "title": "Task created",
+        "description": "Your task has been added to the list."
+      }
+    }
+  },
+  "common": {
+    "everyone": "Everyone's Tasks"
+  }
+}

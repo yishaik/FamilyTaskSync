@@ -1,0 +1,73 @@
+{
+  "app": {
+    "title": "משימות משפחתיות",
+    "loading": "טוען משימות...",
+    "noTasks": {
+      "title": "לא נמצאו משימות",
+      "description": "טרם נוצרו משימות.",
+      "userDescription": "אין ל{{name}} משימות עדיין.",
+      "cta": "צור משימה חדשה כדי להתחיל!"
+    }
+  },
+  "tasks": {
+    "form": {
+      "title": {
+        "label": "כותרת המשימה",
+        "placeholder": "מה צריך לעשות?",
+        "description": "הזן כותרת ברורה ותיאורית למשימה"
+      },
+      "description": {
+        "label": "תיאור (אופציונלי)",
+        "placeholder": "הוסף פרטים נוספים על מה שצריך לעשות...",
+        "description": "כלול פרטים נוספים שיעזרו להשלים את המשימה"
+      },
+      "priority": {
+        "label": "רמת עדיפות",
+        "description": "קבע את רמת החשיבות של המשימה",
+        "placeholder": "בחר עדיפות"
+      },
+      "assignTo": {
+        "label": "הקצה ל",
+        "placeholder": "בחר בן משפחה",
+        "description": "בחר מי צריך להשלים את המשימה",
+        "unassigned": "לא מוקצה"
+      },
+      "dueDate": {
+        "label": "תאריך יעד",
+        "description": "מתי המשימה צריכה להיות מושלמת?"
+      },
+      "reminder": {
+        "label": "קבע תזכורת",
+        "description": "מתי נזכיר לך על המשימה?"
+      },
+      "submit": {
+        "default": "צור משימה",
+        "loading": "יוצר משימה..."
+      }
+    },
+    "status": {
+      "completed": "הושלם",
+      "overdue": "באיחור",
+      "dueToday": "להיום",
+      "unassigned": "לא מוקצה"
+    },
+    "priority": {
+      "low": "עדיפות נמוכה",
+      "medium": "עדיפות בינונית",
+      "high": "עדיפות גבוהה"
+    }
+  },
+  "notifications": {
+    "title": "התראות",
+    "empty": "אין התראות",
+    "success": {
+      "taskCreated": {
+        "title": "המשימה נוצרה",
+        "description": "המשימה שלך נוספה לרשימה."
+      }
+    }
+  },
+  "common": {
+    "everyone": "המשימות של כולם"
+  }
+}
