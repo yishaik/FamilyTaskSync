@@ -7,6 +7,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   color: text("color").notNull(),
   phoneNumber: text("phone_number"),
+  notificationPreference: text("notification_preference").notNull().default("sms"), // 'sms' or 'whatsapp'
 });
 
 export const tasks = pgTable("tasks", {
@@ -31,7 +32,9 @@ export const notifications = pgTable("notifications", {
 });
 
 // Update schemas to handle date properly
-export const insertUserSchema = createInsertSchema(users);
+export const insertUserSchema = createInsertSchema(users).extend({
+  notificationPreference: z.enum(["sms", "whatsapp"]).default("sms"),
+});
 export const insertTaskSchema = createInsertSchema(tasks).extend({
   dueDate: z.string().nullable().optional(),
   reminderTime: z.string().nullable().optional(),

@@ -3,6 +3,7 @@ import { type User } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserCog, Pencil, Check, X, Phone } from "lucide-react";
+import { SiWhatsapp } from 'react-icons/si';
 import { Input } from "@/components/ui/input";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
@@ -16,6 +17,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface UserSwitcherProps {
   users: User[];
@@ -29,6 +37,7 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhoneNumber, setEditPhoneNumber] = useState("");
+  const [editNotificationPreference, setEditNotificationPreference] = useState<"sms" | "whatsapp">("sms");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { mutate: updateUser, isPending } = useMutation({
@@ -60,6 +69,7 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
     setEditingId(user.id);
     setEditName(user.name);
     setEditPhoneNumber(user.phoneNumber || "");
+    setEditNotificationPreference(user.notificationPreference as "sms" | "whatsapp");
     setDialogOpen(true);
   };
 
@@ -69,7 +79,8 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
         id,
         updates: {
           name: editName.trim(),
-          phoneNumber: editPhoneNumber.trim() || null
+          phoneNumber: editPhoneNumber.trim() || null,
+          notificationPreference: editNotificationPreference
         }
       });
     }
@@ -79,6 +90,7 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
     setEditingId(null);
     setEditName("");
     setEditPhoneNumber("");
+    setEditNotificationPreference("sms");
     setDialogOpen(false);
   };
 
@@ -111,7 +123,11 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
             </Avatar>
             <span>{user.name}'s {t('tasks.label')}</span>
             {user.phoneNumber && (
-              <Phone className="h-4 w-4 text-muted-foreground" />
+              user.notificationPreference === 'whatsapp' ? (
+                <SiWhatsapp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <Phone className="h-4 w-4 text-muted-foreground" />
+              )
             )}
           </Button>
           <Button
@@ -149,6 +165,32 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
                 type="tel"
                 disabled={isPending}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('users.notificationPreference')}</Label>
+              <Select
+                value={editNotificationPreference}
+                onValueChange={(value: "sms" | "whatsapp") => setEditNotificationPreference(value)}
+                disabled={isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('users.notificationPreferencePlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sms">
+                    <span className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      SMS
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="whatsapp">
+                    <span className="flex items-center gap-2">
+                      <SiWhatsapp className="h-4 w-4" />
+                      WhatsApp
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="flex justify-end gap-2">
