@@ -25,16 +25,16 @@ export default function TaskForm({ currentUser }: TaskFormProps) {
       priority: "medium",
       completed: false,
       assignedTo: currentUser?.id,
-      dueDate: undefined
+      dueDate: ""
     }
   });
 
   const { mutate: createTask, isPending } = useMutation({
     mutationFn: async (data: InsertTask) => {
-      // Convert date string to ISO format for the API
       const formattedData = {
         ...data,
-        dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : undefined
+        // Only send dueDate if it's not empty
+        dueDate: data.dueDate ? data.dueDate : null
       };
       const res = await apiRequest("POST", "/api/tasks", formattedData);
       return res.json();
@@ -121,9 +121,9 @@ export default function TaskForm({ currentUser }: TaskFormProps) {
                 <FormLabel>Due Date (Optional)</FormLabel>
                 <FormControl>
                   <Input 
-                    type="date" 
-                    {...field} 
-                    value={field.value || ''} 
+                    type="date"
+                    {...field}
+                    value={field.value || ''}
                   />
                 </FormControl>
                 <FormMessage />

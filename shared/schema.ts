@@ -18,8 +18,11 @@ export const tasks = pgTable("tasks", {
   dueDate: timestamp("due_date"),
 });
 
+// Update schemas to handle date properly
 export const insertUserSchema = createInsertSchema(users);
-export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true });
+export const insertTaskSchema = createInsertSchema(tasks).extend({
+  dueDate: z.string().nullable().optional(),
+}).omit({ id: true });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
