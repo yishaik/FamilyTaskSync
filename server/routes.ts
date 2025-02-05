@@ -10,6 +10,17 @@ export function registerRoutes(app: Express) {
     res.json(users);
   });
 
+  app.patch("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      const user = await storage.updateUser(id, updates);
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // Tasks
   app.get("/api/tasks", async (_req, res) => {
     const tasks = await storage.getTasks();
