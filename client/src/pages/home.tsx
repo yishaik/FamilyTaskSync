@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { type User } from "@shared/schema";
 import { Card } from "@/components/ui/card";
-import TaskList from "@/components/task-list";
-import TaskForm from "@/components/task-form";
-import UserSwitcher from "@/components/user-switcher";
-import NotificationBell from "@/components/notification-bell";
+import { TaskList } from "@/components/task-list";
+import { TaskForm } from "@/components/task-form";
+import { UserSwitcher } from "@/components/user-switcher";
+import { NotificationBell } from "@/components/notification-bell";
 import { useState } from "react";
 
 export default function Home() {

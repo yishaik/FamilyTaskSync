@@ -17,7 +17,7 @@ interface NotificationBellProps {
   currentUser: User | null;
 }
 
-export default function NotificationBell({ currentUser }: NotificationBellProps) {
+export function NotificationBell({ currentUser }: NotificationBellProps) {
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications", currentUser?.id],
     enabled: !!currentUser,

@@ -14,7 +14,7 @@ interface TaskFormProps {
   currentUser: User | null;
 }
 
-export default function TaskForm({ currentUser }: TaskFormProps) {
+export function TaskForm({ currentUser }: TaskFormProps) {
   const { toast } = useToast();
 
   const form = useForm<InsertTask>({

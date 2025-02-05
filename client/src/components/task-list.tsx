@@ -12,7 +12,7 @@ interface TaskListProps {
   currentUser: User | null;
 }
 
-export default function TaskList({ currentUser }: TaskListProps) {
+export function TaskList({ currentUser }: TaskListProps) {
   const { data: tasks, isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"]
   });
@@ -94,7 +94,7 @@ export default function TaskList({ currentUser }: TaskListProps) {
           </div>
         </Card>
       ))}
-      
+
       {(!filteredTasks || filteredTasks.length === 0) && (
         <Card className="p-8 flex flex-col items-center text-center text-muted-foreground">
           <AlertCircle className="h-12 w-12 mb-4" />

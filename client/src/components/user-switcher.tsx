@@ -8,7 +8,7 @@ interface UserSwitcherProps {
   onSelect: (user: User | null) => void;
 }
 
-export default function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
+export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
   return (
     <div className="flex gap-2 flex-wrap">
       <Button
@@ -21,7 +21,7 @@ export default function UserSwitcher({ users, selected, onSelect }: UserSwitcher
         </Avatar>
         All Tasks
       </Button>
-      
+
       {users.map(user => (
         <Button
           key={user.id}
