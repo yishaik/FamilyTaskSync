@@ -2,11 +2,12 @@ import { useState } from "react";
 import { type User } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserCog, Pencil, Check } from "lucide-react";
+import { UserCog, Pencil, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserSwitcherProps {
   users: User[];
@@ -16,17 +17,31 @@ interface UserSwitcherProps {
 
 export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
 
-  const { mutate: updateName } = useMutation({
+  const { mutate: updateName, isPending } = useMutation({
     mutationFn: async ({ id, name }: { id: number; name: string }) => {
       const res = await apiRequest("PATCH", `/api/users/${id}`, { name });
-      return res.json();
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to update name');
+      }
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setEditingId(null);
+      toast({
+        description: t('users.nameUpdated', { name: data.name })
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        description: error.message
+      });
     }
   });
 
@@ -37,8 +52,13 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
 
   const handleSave = (id: number) => {
     if (editName.trim()) {
-      updateName({ id, name: editName });
+      updateName({ id, name: editName.trim() });
     }
+  };
+
+  const handleCancel = () => {
+    setEditingId(null);
+    setEditName("");
   };
 
   return (
@@ -77,23 +97,39 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleSave(user.id);
+                  } else if (e.key === 'Escape') {
+                    handleCancel();
                   }
                   e.stopPropagation();
                 }}
+                disabled={isPending}
+                autoFocus
               />
             ) : (
               <span>{user.name}'s {t('tasks.label')}</span>
             )}
           </Button>
           {editingId === user.id ? (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-10 w-10"
-              onClick={() => handleSave(user.id)}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
+            <>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-10 w-10"
+                onClick={() => handleSave(user.id)}
+                disabled={isPending}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-10 w-10"
+                onClick={handleCancel}
+                disabled={isPending}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </>
           ) : (
             <Button
               size="icon"
