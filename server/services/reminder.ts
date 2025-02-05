@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { storage } from '../storage';
 import { sendTaskReminder } from './sms';
-import { lt, eq, and, isNull } from 'drizzle-orm';
+import { lt, eq, and, isNotNull } from 'drizzle-orm';
 import { tasks } from '@shared/schema';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -22,7 +22,7 @@ export async function checkAndSendReminders() {
           eq(tasks.smsReminderSent, false),
           lt(tasks.reminderTime, israelTime),
           eq(tasks.completed, false),
-          isNull(tasks.assignedTo)
+          isNotNull(tasks.assignedTo)
         )
       );
 

@@ -1,7 +1,9 @@
 import twilio from 'twilio';
 import { type Task, type User } from '@shared/schema';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
+const timeZone = 'Asia/Jerusalem';
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
@@ -14,8 +16,9 @@ export async function sendTaskReminder(task: Task, user: User) {
   }
 
   try {
+    const zonedDueDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
     const message = await client.messages.create({
-      body: `Reminder: Task "${task.title}" is due ${task.dueDate ? `on ${format(new Date(task.dueDate), 'MMM d')}` : 'soon'}. ${task.description || ''}`,
+      body: `Reminder: Task "${task.title}" is due ${zonedDueDate ? `on ${format(zonedDueDate, 'MMM d')}` : 'soon'}. ${task.description || ''}`,
       to: user.phoneNumber,
       from: process.env.TWILIO_PHONE_NUMBER,
     });
