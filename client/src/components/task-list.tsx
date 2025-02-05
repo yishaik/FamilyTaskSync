@@ -11,6 +11,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTranslation } from "react-i18next";
+import { useToast } from "@/hooks/use-toast";
 
 interface TaskListProps {
   currentUser: User | null;
@@ -18,13 +19,14 @@ interface TaskListProps {
 
 export function TaskList({ currentUser }: TaskListProps) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const timeZone = 'Asia/Jerusalem';
 
   const { data: tasks, isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"]
   });
 
-  const { data: users = [] } = useQuery<User[]>({ 
+  const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"]
   });
 
@@ -44,10 +46,26 @@ export function TaskList({ currentUser }: TaskListProps) {
 
   const { mutate: deleteTask } = useMutation({
     mutationFn: async (taskId: number) => {
-      await apiRequest("DELETE", `/api/tasks/${taskId}`);
+      const res = await apiRequest("DELETE", `/api/tasks/${taskId}`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to delete task");
+      }
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({
+        title: t('tasks.toast.deleteSuccess'),
+        description: t('tasks.toast.deleteSuccessDescription'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('tasks.toast.deleteError'),
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
 

@@ -41,9 +41,14 @@ export function registerRoutes(app: Express) {
   });
 
   app.delete("/api/tasks/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    await storage.deleteTask(id);
-    res.json({ success: true });
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteTask(id);
+      res.json({ success: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete task';
+      res.status(400).json({ message });
+    }
   });
 
   // Notifications
