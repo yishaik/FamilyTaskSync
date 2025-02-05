@@ -26,13 +26,18 @@ export async function checkAndSendReminders() {
         )
       );
 
+    console.log(`Found ${pendingReminders.length} pending reminders to process`);
+
     for (const task of pendingReminders) {
       if (!task.assignedTo) continue;
 
       try {
         // Get the user assigned to the task
         const user = await storage.getUser(task.assignedTo);
-        if (!user) continue;
+        if (!user) {
+          console.log(`No user found for task ${task.id}, skipping reminder`);
+          continue;
+        }
 
         // Send the reminder
         await sendTaskReminder(task, user);
@@ -47,8 +52,10 @@ export async function checkAndSendReminders() {
         await storage.createNotification({
           taskId: task.id,
           userId: user.id,
-          message: `SMS reminder sent for task: ${task.title}`,
+          message: `Reminder: Task "${task.title}" is due soon.`,
         });
+
+        console.log(`Successfully processed reminder for task ${task.id} assigned to user ${user.name}`);
       } catch (error) {
         console.error(`Failed to process reminder for task ${task.id}:`, error);
       }
@@ -60,3 +67,6 @@ export async function checkAndSendReminders() {
 
 // Run reminder check every minute
 setInterval(checkAndSendReminders, 60 * 1000);
+
+// Initial check when the service starts
+checkAndSendReminders();
