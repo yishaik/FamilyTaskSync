@@ -23,7 +23,7 @@ export const tasks = pgTable("tasks", {
 
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
-  taskId: integer("task_id").references(() => tasks.id).notNull(),
+  taskId: integer("task_id").references(() => tasks.id, { onDelete: 'cascade' }).notNull(),
   userId: integer("user_id").references(() => users.id).notNull(),
   message: text("message").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
