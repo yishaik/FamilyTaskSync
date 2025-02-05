@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Task, type InsertTask, users, tasks } from "@shared/schema";
+import { type User, type InsertUser, type Task, type InsertTask, type Notification, type InsertNotification, users, tasks, notifications } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
@@ -12,6 +12,11 @@ export interface IStorage {
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: number, task: Partial<InsertTask>): Promise<Task>;
   deleteTask(id: number): Promise<void>;
+
+  // Notifications
+  getNotifications(userId: number): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -29,20 +34,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTask(insertTask: InsertTask): Promise<Task> {
-    // Convert date string to Date object if present
     const taskData = {
       ...insertTask,
       dueDate: insertTask.dueDate ? new Date(insertTask.dueDate) : null,
+      reminderTime: insertTask.reminderTime ? new Date(insertTask.reminderTime) : null,
     };
     const [task] = await db.insert(tasks).values(taskData).returning();
     return task;
   }
 
   async updateTask(id: number, updates: Partial<InsertTask>): Promise<Task> {
-    // Convert date string to Date object if present in updates
     const updateData = {
       ...updates,
       dueDate: updates.dueDate ? new Date(updates.dueDate) : undefined,
+      reminderTime: updates.reminderTime ? new Date(updates.reminderTime) : undefined,
     };
 
     const [task] = await db
@@ -61,9 +66,32 @@ export class DatabaseStorage implements IStorage {
   async deleteTask(id: number): Promise<void> {
     await db.delete(tasks).where(eq(tasks.id, id));
   }
+
+  async getNotifications(userId: number): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(notifications.createdAt);
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db
+      .insert(notifications)
+      .values(notification)
+      .returning();
+    return newNotification;
+  }
+
+  async markNotificationAsRead(id: number): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.id, id));
+  }
 }
 
-// Add default family members
+export const storage = new DatabaseStorage();
 async function initializeDefaultUsers() {
   const defaultUsers = [
     { name: "Mom", color: "#FF69B4" },
@@ -79,5 +107,4 @@ async function initializeDefaultUsers() {
   }
 }
 
-export const storage = new DatabaseStorage();
 initializeDefaultUsers();

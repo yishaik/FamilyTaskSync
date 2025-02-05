@@ -25,7 +25,8 @@ export default function TaskForm({ currentUser }: TaskFormProps) {
       priority: "medium",
       completed: false,
       assignedTo: currentUser?.id,
-      dueDate: ""
+      dueDate: "",
+      reminderTime: ""
     }
   });
 
@@ -33,8 +34,8 @@ export default function TaskForm({ currentUser }: TaskFormProps) {
     mutationFn: async (data: InsertTask) => {
       const formattedData = {
         ...data,
-        // Only send dueDate if it's not empty
-        dueDate: data.dueDate ? data.dueDate : null
+        dueDate: data.dueDate ? data.dueDate : null,
+        reminderTime: data.reminderTime ? data.reminderTime : null
       };
       const res = await apiRequest("POST", "/api/tasks", formattedData);
       return res.json();
@@ -121,7 +122,25 @@ export default function TaskForm({ currentUser }: TaskFormProps) {
                 <FormLabel>Due Date (Optional)</FormLabel>
                 <FormControl>
                   <Input 
-                    type="date"
+                    type="date" 
+                    {...field}
+                    value={field.value || ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="reminderTime"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Reminder (Optional)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="datetime-local" 
                     {...field}
                     value={field.value || ''}
                   />

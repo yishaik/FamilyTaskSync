@@ -16,17 +16,33 @@ export const tasks = pgTable("tasks", {
   completed: boolean("completed").notNull().default(false),
   priority: text("priority").notNull().default("medium"),
   dueDate: timestamp("due_date"),
+  reminderTime: timestamp("reminder_time"),
+});
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").references(() => tasks.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  read: boolean("read").notNull().default(false),
 });
 
 // Update schemas to handle date properly
 export const insertUserSchema = createInsertSchema(users);
 export const insertTaskSchema = createInsertSchema(tasks).extend({
   dueDate: z.string().nullable().optional(),
+  reminderTime: z.string().nullable().optional(),
 }).omit({ id: true });
+
+export const insertNotificationSchema = createInsertSchema(notifications)
+  .omit({ id: true, createdAt: true });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export const taskPriorities = ["low", "medium", "high"] as const;

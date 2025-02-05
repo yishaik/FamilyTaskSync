@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import TaskList from "@/components/task-list";
 import TaskForm from "@/components/task-form";
 import UserSwitcher from "@/components/user-switcher";
+import NotificationBell from "@/components/notification-bell";
 import { useState } from "react";
 
 export default function Home() {
@@ -19,11 +20,14 @@ export default function Home() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Family Tasks
           </h1>
-          <UserSwitcher
-            users={users || []}
-            selected={selectedUser}
-            onSelect={setSelectedUser}
-          />
+          <div className="flex items-center gap-4">
+            <NotificationBell currentUser={selectedUser} />
+            <UserSwitcher
+              users={users || []}
+              selected={selectedUser}
+              onSelect={setSelectedUser}
+            />
+          </div>
         </div>
 
         <Card className="p-6">

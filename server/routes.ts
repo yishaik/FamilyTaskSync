@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertTaskSchema } from "@shared/schema";
+import { insertTaskSchema, insertNotificationSchema } from "@shared/schema";
 
 export function registerRoutes(app: Express) {
   // Users
@@ -32,6 +32,25 @@ export function registerRoutes(app: Express) {
   app.delete("/api/tasks/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     await storage.deleteTask(id);
+    res.json({ success: true });
+  });
+
+  // Notifications
+  app.get("/api/notifications/:userId", async (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const notifications = await storage.getNotifications(userId);
+    res.json(notifications);
+  });
+
+  app.post("/api/notifications", async (req, res) => {
+    const parsed = insertNotificationSchema.parse(req.body);
+    const notification = await storage.createNotification(parsed);
+    res.json(notification);
+  });
+
+  app.post("/api/notifications/:id/read", async (req, res) => {
+    const id = parseInt(req.params.id);
+    await storage.markNotificationAsRead(id);
     res.json({ success: true });
   });
 
