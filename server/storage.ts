@@ -5,7 +5,9 @@ import { eq } from "drizzle-orm";
 export interface IStorage {
   // Users
   getUsers(): Promise<User[]>;
+  getUser(id: number): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
 
   // Tasks
   getTasks(): Promise<Task[]>;
@@ -24,8 +26,27 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users);
   }
 
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+
+    if (!user) {
+      throw new Error(`User ${id} not found`);
+    }
+
     return user;
   }
 
@@ -94,9 +115,9 @@ export class DatabaseStorage implements IStorage {
 export const storage = new DatabaseStorage();
 async function initializeDefaultUsers() {
   const defaultUsers = [
-    { name: "Mom", color: "#FF69B4" },
-    { name: "Dad", color: "#4169E1" },
-    { name: "Kid", color: "#32CD32" }
+    { name: "Mom", color: "#FF69B4", phoneNumber: null },
+    { name: "Dad", color: "#4169E1", phoneNumber: null },
+    { name: "Kid", color: "#32CD32", phoneNumber: null }
   ];
 
   const existingUsers = await storage.getUsers();

@@ -6,6 +6,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   color: text("color").notNull(),
+  phoneNumber: text("phone_number"),
 });
 
 export const tasks = pgTable("tasks", {
@@ -17,6 +18,7 @@ export const tasks = pgTable("tasks", {
   priority: text("priority").notNull().default("medium"),
   dueDate: timestamp("due_date"),
   reminderTime: timestamp("reminder_time"),
+  smsReminderSent: boolean("sms_reminder_sent").notNull().default(false),
 });
 
 export const notifications = pgTable("notifications", {
@@ -33,7 +35,7 @@ export const insertUserSchema = createInsertSchema(users);
 export const insertTaskSchema = createInsertSchema(tasks).extend({
   dueDate: z.string().nullable().optional(),
   reminderTime: z.string().nullable().optional(),
-}).omit({ id: true });
+}).omit({ id: true, smsReminderSent: true });
 
 export const insertNotificationSchema = createInsertSchema(notifications)
   .omit({ id: true, createdAt: true });
