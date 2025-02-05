@@ -23,7 +23,7 @@ function LanguageSwitcher() {
     <Button
       variant="ghost"
       size="icon"
-      className="fixed top-4 right-4"
+      className={`fixed top-4 ${i18n.language === 'he' ? 'left-4' : 'right-4'}`}
       onClick={toggleLanguage}
     >
       <Languages className="h-5 w-5" />
