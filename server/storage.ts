@@ -29,14 +29,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTask(insertTask: InsertTask): Promise<Task> {
-    const [task] = await db.insert(tasks).values(insertTask).returning();
+    // Convert date string to Date object if present
+    const taskData = {
+      ...insertTask,
+      dueDate: insertTask.dueDate ? new Date(insertTask.dueDate) : null,
+    };
+    const [task] = await db.insert(tasks).values(taskData).returning();
     return task;
   }
 
   async updateTask(id: number, updates: Partial<InsertTask>): Promise<Task> {
+    // Convert date string to Date object if present in updates
+    const updateData = {
+      ...updates,
+      dueDate: updates.dueDate ? new Date(updates.dueDate) : undefined,
+    };
+
     const [task] = await db
       .update(tasks)
-      .set(updates)
+      .set(updateData)
       .where(eq(tasks.id, id))
       .returning();
 
