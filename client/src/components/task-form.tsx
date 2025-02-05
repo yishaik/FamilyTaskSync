@@ -11,6 +11,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, Clock, Bell } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toZonedTime } from 'date-fns-tz';
 
 interface TaskFormProps {
   currentUser: User | null;
@@ -40,8 +41,8 @@ export function TaskForm({ currentUser }: TaskFormProps) {
     mutationFn: async (data: InsertTask) => {
       const formattedData = {
         ...data,
-        dueDate: data.dueDate ? data.dueDate : null,
-        reminderTime: data.reminderTime ? data.reminderTime : null,
+        dueDate: data.dueDate ? toZonedTime(new Date(data.dueDate), 'Asia/Jerusalem').toISOString() : null,
+        reminderTime: data.reminderTime ? toZonedTime(new Date(data.reminderTime), 'Asia/Jerusalem').toISOString() : null,
         assignedTo: data.assignedTo || null
       };
       const res = await apiRequest("POST", "/api/tasks", formattedData);

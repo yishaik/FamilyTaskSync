@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Trash2, AlertCircle, Clock, Calendar, Bell, User as UserIcon } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
+import { toZonedTime, format as formatTz } from 'date-fns-tz';
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -17,11 +18,13 @@ interface TaskListProps {
 
 export function TaskList({ currentUser }: TaskListProps) {
   const { t } = useTranslation();
+  const timeZone = 'Asia/Jerusalem';
+
   const { data: tasks, isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"]
   });
 
-  const { data: users = [] } = useQuery<User[]>({
+  const { data: users = [] } = useQuery<User[]>({ 
     queryKey: ["/api/users"]
   });
 
@@ -48,7 +51,7 @@ export function TaskList({ currentUser }: TaskListProps) {
     }
   });
 
-  const filteredTasks = tasks?.filter(task => 
+  const filteredTasks = tasks?.filter(task =>
     !currentUser || task.assignedTo === currentUser.id
   );
 
@@ -75,11 +78,13 @@ export function TaskList({ currentUser }: TaskListProps) {
   };
 
   const getTaskStatus = (task: Task) => {
+    const zonedDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
+
     if (task.completed) return { color: "bg-gray-100 text-gray-800", text: t('tasks.status.completed') };
-    if (task.dueDate && isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate))) {
+    if (zonedDate && isPast(zonedDate) && !isToday(zonedDate)) {
       return { color: "bg-red-100 text-red-800", text: t('tasks.status.overdue') };
     }
-    if (task.dueDate && isToday(new Date(task.dueDate))) {
+    if (zonedDate && isToday(zonedDate)) {
       return { color: "bg-orange-100 text-orange-800", text: t('tasks.status.dueToday') };
     }
     return null;
@@ -90,6 +95,8 @@ export function TaskList({ currentUser }: TaskListProps) {
       {filteredTasks?.map(task => {
         const status = getTaskStatus(task);
         const assignedUser = getAssignedUser(task.assignedTo);
+        const zonedDueDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
+        const zonedReminderTime = task.reminderTime ? toZonedTime(new Date(task.reminderTime), timeZone) : null;
 
         return (
           <Card key={task.id} className={cn(
@@ -130,17 +137,17 @@ export function TaskList({ currentUser }: TaskListProps) {
                     </Badge>
                   )}
 
-                  {task.dueDate && (
+                  {zonedDueDate && (
                     <Badge variant="outline" className="flex items-center gap-1 ltr-text">
                       <Calendar className="h-3 w-3" />
-                      Due {format(new Date(task.dueDate), 'MMM d')}
+                      Due {formatTz(zonedDueDate, 'MMM d', { timeZone })}
                     </Badge>
                   )}
 
-                  {task.reminderTime && (
+                  {zonedReminderTime && (
                     <Badge variant="outline" className="flex items-center gap-1 ltr-text">
                       <Bell className="h-3 w-3" />
-                      Reminder: {format(new Date(task.reminderTime), 'MMM d, h:mm a')}
+                      Reminder: {formatTz(zonedReminderTime, 'MMM d, h:mm a', { timeZone })}
                     </Badge>
                   )}
 

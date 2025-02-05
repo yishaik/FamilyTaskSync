@@ -3,9 +3,16 @@ import { storage } from '../storage';
 import { sendTaskReminder } from './sms';
 import { lt, eq, and, isNull } from 'drizzle-orm';
 import { tasks } from '@shared/schema';
+import { toZonedTime } from 'date-fns-tz';
+
+const TIMEZONE = 'Asia/Jerusalem';
 
 export async function checkAndSendReminders() {
   try {
+    // Get current time in Israel timezone
+    const now = new Date();
+    const israelTime = toZonedTime(now, TIMEZONE);
+
     // Get all tasks that have reminders due and haven't been sent yet
     const pendingReminders = await db
       .select()
@@ -13,7 +20,7 @@ export async function checkAndSendReminders() {
       .where(
         and(
           eq(tasks.smsReminderSent, false),
-          lt(tasks.reminderTime, new Date()),
+          lt(tasks.reminderTime, israelTime),
           eq(tasks.completed, false),
           isNull(tasks.assignedTo)
         )
