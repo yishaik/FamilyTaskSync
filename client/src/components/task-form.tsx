@@ -16,7 +16,7 @@ interface TaskFormProps {
 
 export default function TaskForm({ currentUser }: TaskFormProps) {
   const { toast } = useToast();
-  
+
   const form = useForm<InsertTask>({
     resolver: zodResolver(insertTaskSchema),
     defaultValues: {
@@ -24,13 +24,19 @@ export default function TaskForm({ currentUser }: TaskFormProps) {
       description: "",
       priority: "medium",
       completed: false,
-      assignedTo: currentUser?.id
+      assignedTo: currentUser?.id,
+      dueDate: undefined
     }
   });
 
   const { mutate: createTask, isPending } = useMutation({
     mutationFn: async (data: InsertTask) => {
-      const res = await apiRequest("POST", "/api/tasks", data);
+      // Convert date string to ISO format for the API
+      const formattedData = {
+        ...data,
+        dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : undefined
+      };
+      const res = await apiRequest("POST", "/api/tasks", formattedData);
       return res.json();
     },
     onSuccess: () => {
@@ -67,7 +73,11 @@ export default function TaskForm({ currentUser }: TaskFormProps) {
             <FormItem>
               <FormLabel>Description (Optional)</FormLabel>
               <FormControl>
-                <Textarea placeholder="Add some details..." {...field} />
+                <Textarea 
+                  placeholder="Add some details..." 
+                  {...field} 
+                  value={field.value || ''} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -110,7 +120,11 @@ export default function TaskForm({ currentUser }: TaskFormProps) {
               <FormItem className="flex-1">
                 <FormLabel>Due Date (Optional)</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input 
+                    type="date" 
+                    {...field} 
+                    value={field.value || ''} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
