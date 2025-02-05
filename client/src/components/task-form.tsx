@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { insertTaskSchema, taskPriorities, type User, type InsertTask } from "@shared/schema";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,9 @@ interface TaskFormProps {
 
 export function TaskForm({ currentUser }: TaskFormProps) {
   const { toast } = useToast();
+  const { data: users = [] } = useQuery<User[]>({ 
+    queryKey: ["/api/users"]
+  });
 
   const form = useForm<InsertTask>({
     resolver: zodResolver(insertTaskSchema),
@@ -25,7 +28,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
       description: "",
       priority: "medium",
       completed: false,
-      assignedTo: currentUser?.id,
+      assignedTo: currentUser?.id || null,
       dueDate: "",
       reminderTime: ""
     }
@@ -36,14 +39,18 @@ export function TaskForm({ currentUser }: TaskFormProps) {
       const formattedData = {
         ...data,
         dueDate: data.dueDate ? data.dueDate : null,
-        reminderTime: data.reminderTime ? data.reminderTime : null
+        reminderTime: data.reminderTime ? data.reminderTime : null,
+        assignedTo: data.assignedTo || null
       };
       const res = await apiRequest("POST", "/api/tasks", formattedData);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      form.reset();
+      form.reset({
+        ...form.formState.defaultValues,
+        assignedTo: currentUser?.id || null
+      });
       toast({
         title: "Task created",
         description: "Your task has been added to the list.",
@@ -54,22 +61,56 @@ export function TaskForm({ currentUser }: TaskFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((data) => createTask(data))} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Task Title</FormLabel>
-              <FormControl>
-                <Input placeholder="What needs to be done?" {...field} />
-              </FormControl>
-              <FormDescription>
-                Enter a clear, descriptive title for the task
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-6 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Task Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="What needs to be done?" {...field} />
+                </FormControl>
+                <FormDescription>
+                  Enter a clear, descriptive title for the task
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="assignedTo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Assign To</FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                  value={field.value?.toString() ?? "unassigned"}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select family member" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id.toString()}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Choose who should complete this task
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

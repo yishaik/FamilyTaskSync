@@ -3,11 +3,12 @@ import { type Task, type User } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Trash2, AlertCircle, Clock, Calendar, Bell } from "lucide-react";
+import { Trash2, AlertCircle, Clock, Calendar, Bell, User as UserIcon } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface TaskListProps {
   currentUser: User | null;
@@ -16,6 +17,10 @@ interface TaskListProps {
 export function TaskList({ currentUser }: TaskListProps) {
   const { data: tasks, isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"]
+  });
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"]
   });
 
   const { mutate: toggleComplete } = useMutation({
@@ -44,6 +49,11 @@ export function TaskList({ currentUser }: TaskListProps) {
   const filteredTasks = tasks?.filter(task => 
     !currentUser || task.assignedTo === currentUser.id
   );
+
+  const getAssignedUser = (taskId: number | null) => {
+    if (!taskId) return null;
+    return users.find(user => user.id === taskId);
+  };
 
   if (isLoading) {
     return (
@@ -77,6 +87,7 @@ export function TaskList({ currentUser }: TaskListProps) {
     <div className="space-y-4">
       {filteredTasks?.map(task => {
         const status = getTaskStatus(task);
+        const assignedUser = getAssignedUser(task.assignedTo);
 
         return (
           <Card key={task.id} className={cn(
@@ -89,9 +100,18 @@ export function TaskList({ currentUser }: TaskListProps) {
                 onCheckedChange={() => toggleComplete(task)}
               />
               <div className="flex-1">
-                <h3 className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                  {task.title}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                    {task.title}
+                  </h3>
+                  {assignedUser && (
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback style={{ backgroundColor: assignedUser.color, color: 'white' }}>
+                        {assignedUser.name[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                </div>
                 {task.description && (
                   <p className="text-sm text-muted-foreground mt-1">
                     {task.description}
@@ -119,6 +139,13 @@ export function TaskList({ currentUser }: TaskListProps) {
                     <Badge variant="outline" className="flex items-center gap-1">
                       <Bell className="h-3 w-3" />
                       Reminder: {format(new Date(task.reminderTime), 'MMM d, h:mm a')}
+                    </Badge>
+                  )}
+
+                  {!assignedUser && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <UserIcon className="h-3 w-3" />
+                      Unassigned
                     </Badge>
                   )}
                 </div>
