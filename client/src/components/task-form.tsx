@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, Clock, Bell } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface TaskFormProps {
   currentUser: User | null;
@@ -17,6 +18,7 @@ interface TaskFormProps {
 
 export function TaskForm({ currentUser }: TaskFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { data: users = [] } = useQuery<User[]>({ 
     queryKey: ["/api/users"]
   });
@@ -52,8 +54,8 @@ export function TaskForm({ currentUser }: TaskFormProps) {
         assignedTo: currentUser?.id || null
       });
       toast({
-        title: "Task created",
-        description: "Your task has been added to the list.",
+        title: t('notifications.success.taskCreated.title'),
+        description: t('notifications.success.taskCreated.description'),
       });
     }
   });
@@ -67,12 +69,12 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="title"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Task Title</FormLabel>
+                <FormLabel>{t('tasks.form.title.label')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="What needs to be done?" {...field} />
+                  <Input placeholder={t('tasks.form.title.placeholder')} {...field} />
                 </FormControl>
                 <FormDescription>
-                  Enter a clear, descriptive title for the task
+                  {t('tasks.form.title.description')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -84,18 +86,18 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="assignedTo"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Assign To</FormLabel>
+                <FormLabel>{t('tasks.form.assignTo.label')}</FormLabel>
                 <Select
                   onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
                   value={field.value?.toString() ?? "unassigned"}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select family member" />
+                      <SelectValue placeholder={t('tasks.form.assignTo.placeholder')} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">{t('tasks.form.assignTo.unassigned')}</SelectItem>
                     {users.map(user => (
                       <SelectItem key={user.id} value={user.id.toString()}>
                         {user.name}
@@ -104,7 +106,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Choose who should complete this task
+                  {t('tasks.form.assignTo.description')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -117,17 +119,17 @@ export function TaskForm({ currentUser }: TaskFormProps) {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description (Optional)</FormLabel>
+              <FormLabel>{t('tasks.form.description.label')}</FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Add some details about what needs to be done..." 
+                  placeholder={t('tasks.form.description.placeholder')}
                   className="min-h-[100px]"
                   {...field} 
                   value={field.value || ''} 
                 />
               </FormControl>
               <FormDescription>
-                Include any additional details that would help complete the task
+                {t('tasks.form.description.description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -140,26 +142,26 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="priority"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Priority Level</FormLabel>
+                <FormLabel>{t('tasks.form.priority.label')}</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select priority" />
+                      <SelectValue placeholder={t('tasks.form.priority.placeholder')} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {taskPriorities.map(priority => (
                       <SelectItem key={priority} value={priority}>
-                        {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                        {t(`tasks.priority.${priority}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Set the importance level of this task
+                  {t('tasks.form.priority.description')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -171,7 +173,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="dueDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Due Date</FormLabel>
+                <FormLabel>{t('tasks.form.dueDate.label')}</FormLabel>
                 <div className="relative">
                   <FormControl>
                     <Input 
@@ -184,7 +186,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                   <CalendarIcon className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
                 </div>
                 <FormDescription>
-                  When does this task need to be completed?
+                  {t('tasks.form.dueDate.description')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -196,7 +198,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="reminderTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Set Reminder</FormLabel>
+                <FormLabel>{t('tasks.form.reminder.label')}</FormLabel>
                 <div className="relative">
                   <FormControl>
                     <Input 
@@ -209,7 +211,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                   <Bell className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
                 </div>
                 <FormDescription>
-                  When should we remind you about this task?
+                  {t('tasks.form.reminder.description')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -225,10 +227,10 @@ export function TaskForm({ currentUser }: TaskFormProps) {
           {isPending ? (
             <>
               <Clock className="mr-2 h-4 w-4 animate-spin" />
-              Creating Task...
+              {t('tasks.form.submit.loading')}
             </>
           ) : (
-            'Create Task'
+            t('tasks.form.submit.default')
           )}
         </Button>
       </form>

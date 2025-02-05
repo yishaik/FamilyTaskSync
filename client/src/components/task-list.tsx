@@ -9,12 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useTranslation } from "react-i18next";
 
 interface TaskListProps {
   currentUser: User | null;
 }
 
 export function TaskList({ currentUser }: TaskListProps) {
+  const { t } = useTranslation();
   const { data: tasks, isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"]
   });
@@ -60,7 +62,7 @@ export function TaskList({ currentUser }: TaskListProps) {
       <Card className="p-8 flex items-center justify-center">
         <div className="text-center text-muted-foreground">
           <Clock className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading tasks...</p>
+          <p>{t('app.loading')}</p>
         </div>
       </Card>
     );
@@ -73,12 +75,12 @@ export function TaskList({ currentUser }: TaskListProps) {
   };
 
   const getTaskStatus = (task: Task) => {
-    if (task.completed) return { color: "bg-gray-100 text-gray-800", text: "Completed" };
+    if (task.completed) return { color: "bg-gray-100 text-gray-800", text: t('tasks.status.completed') };
     if (task.dueDate && isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate))) {
-      return { color: "bg-red-100 text-red-800", text: "Overdue" };
+      return { color: "bg-red-100 text-red-800", text: t('tasks.status.overdue') };
     }
     if (task.dueDate && isToday(new Date(task.dueDate))) {
-      return { color: "bg-orange-100 text-orange-800", text: "Due Today" };
+      return { color: "bg-orange-100 text-orange-800", text: t('tasks.status.dueToday') };
     }
     return null;
   };
@@ -119,7 +121,7 @@ export function TaskList({ currentUser }: TaskListProps) {
                 )}
                 <div className="flex gap-2 mt-2 flex-wrap">
                   <Badge variant="outline" className={priorityColors[task.priority as keyof typeof priorityColors]}>
-                    {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
+                    {t(`tasks.priority.${task.priority}`)}
                   </Badge>
 
                   {status && (
@@ -129,14 +131,14 @@ export function TaskList({ currentUser }: TaskListProps) {
                   )}
 
                   {task.dueDate && (
-                    <Badge variant="outline" className="flex items-center gap-1">
+                    <Badge variant="outline" className="flex items-center gap-1 ltr-text">
                       <Calendar className="h-3 w-3" />
                       Due {format(new Date(task.dueDate), 'MMM d')}
                     </Badge>
                   )}
 
                   {task.reminderTime && (
-                    <Badge variant="outline" className="flex items-center gap-1">
+                    <Badge variant="outline" className="flex items-center gap-1 ltr-text">
                       <Bell className="h-3 w-3" />
                       Reminder: {format(new Date(task.reminderTime), 'MMM d, h:mm a')}
                     </Badge>
@@ -145,7 +147,7 @@ export function TaskList({ currentUser }: TaskListProps) {
                   {!assignedUser && (
                     <Badge variant="outline" className="flex items-center gap-1">
                       <UserIcon className="h-3 w-3" />
-                      Unassigned
+                      {t('tasks.status.unassigned')}
                     </Badge>
                   )}
                 </div>
@@ -166,9 +168,9 @@ export function TaskList({ currentUser }: TaskListProps) {
       {(!filteredTasks || filteredTasks.length === 0) && (
         <Card className="p-8 flex flex-col items-center text-center text-muted-foreground">
           <AlertCircle className="h-12 w-12 mb-4" />
-          <h3 className="font-medium text-lg">No tasks found</h3>
-          <p>{currentUser ? `${currentUser.name} has no tasks yet.` : "No tasks have been created yet."}</p>
-          <p className="text-sm mt-2">Create a new task to get started!</p>
+          <h3 className="font-medium text-lg">{t('app.noTasks.title')}</h3>
+          <p>{currentUser ? t('app.noTasks.userDescription', { name: currentUser.name }) : t('app.noTasks.description')}</p>
+          <p className="text-sm mt-2">{t('app.noTasks.cta')}</p>
         </Card>
       )}
     </div>

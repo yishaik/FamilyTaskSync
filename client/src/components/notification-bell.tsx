@@ -12,12 +12,14 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useTranslation } from "react-i18next";
 
 interface NotificationBellProps {
   currentUser: User | null;
 }
 
 export function NotificationBell({ currentUser }: NotificationBellProps) {
+  const { t } = useTranslation();
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications", currentUser?.id],
     enabled: !!currentUser,
@@ -52,10 +54,10 @@ export function NotificationBell({ currentUser }: NotificationBellProps) {
       <DropdownMenuContent align="end" className="w-80">
         <ScrollArea className="h-80">
           <div className="p-4 space-y-4">
-            <h4 className="font-medium leading-none mb-4">Notifications</h4>
+            <h4 className="font-medium leading-none mb-4">{t('notifications.title')}</h4>
             {notifications.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No notifications
+                {t('notifications.empty')}
               </p>
             ) : (
               notifications.map((notification) => (
@@ -69,7 +71,7 @@ export function NotificationBell({ currentUser }: NotificationBellProps) {
                   onClick={() => handleMarkAsRead(notification.id)}
                 >
                   <p className="text-sm">{notification.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1 ltr-text">
                     {format(new Date(notification.createdAt), "MMM d, h:mm a")}
                   </p>
                 </Card>
