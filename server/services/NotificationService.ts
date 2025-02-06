@@ -18,6 +18,9 @@ export class NotificationService {
   private readonly timeZone: string;
 
   constructor() {
+    if (!config.twilio.accountSid || !config.twilio.authToken || !config.twilio.phoneNumber) {
+      throw new ConfigurationError('Missing required Twilio credentials');
+    }
     this.client = twilio(config.twilio.accountSid, config.twilio.authToken);
     this.timeZone = config.app.timeZone;
   }
@@ -58,7 +61,9 @@ export class NotificationService {
     console.log('Sending task reminder:', {
       taskId: task.id,
       userId: user.id,
-      notificationType: user.notificationPreference
+      userName: user.name,
+      notificationType: user.notificationPreference,
+      phone: user.phoneNumber
     });
 
     try {
@@ -87,6 +92,13 @@ export class NotificationService {
       const to = deliveryChannel === 'whatsapp'
         ? `whatsapp:${formattedPhone}`
         : formattedPhone;
+
+      console.log('Sending message with:', {
+        channel: deliveryChannel,
+        to,
+        from,
+        fallback: usingFallback
+      });
 
       const message = await this.client.messages.create({
         body: this.formatMessage(task, user),

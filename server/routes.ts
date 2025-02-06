@@ -2,11 +2,9 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertTaskSchema, insertNotificationSchema } from "@shared/schema";
-import { toZonedTime } from 'date-fns-tz';
 import { notifications } from "@shared/schema";
 import { eq } from 'drizzle-orm';
 import { db } from "./db";
-import { sendTaskReminder } from './services/sms';
 import { notificationService } from './services/NotificationService';
 import { NotificationError, ValidationError } from './services/errors';
 
@@ -161,6 +159,12 @@ export function registerRoutes(app: Express) {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
+
+      console.log('Testing notification for user:', {
+        userId,
+        userName: user.name,
+        notificationPreference: user.notificationPreference
+      });
 
       // Create a test task
       const testTask = await storage.createTask({
