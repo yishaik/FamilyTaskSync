@@ -36,7 +36,8 @@ export async function sendTaskReminder(task: Task, user: User) {
       phoneNumber: user.phoneNumber,
       notificationType: user.notificationPreference,
       taskTitle: task.title,
-      taskDueDate: task.dueDate
+      taskDueDate: task.dueDate,
+      twilioNumber: TWILIO_PHONE_NUMBER
     });
 
     const zonedDueDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
@@ -67,14 +68,25 @@ export async function sendTaskReminder(task: Task, user: User) {
       from,
     });
 
-    console.log(`${user.notificationPreference.toUpperCase()} message sent successfully for ${user.name}, message SID: ${message.sid}`);
+    console.log(`${user.notificationPreference.toUpperCase()} message sent successfully:`, {
+      userName: user.name,
+      messageSid: message.sid,
+      status: message.status,
+      dateCreated: message.dateCreated
+    });
+
     return message;
   } catch (error) {
     const twilioError = error as TwilioError;
     console.error('Error sending message:', {
       error: twilioError.message,
       code: twilioError.code,
-      status: twilioError.status
+      status: twilioError.status,
+      stack: twilioError.stack,
+      userName: user.name,
+      userId: user.id,
+      phoneNumber: user.phoneNumber,
+      notificationType: user.notificationPreference
     });
     throw new Error(`Failed to send ${user.notificationPreference} reminder: ${twilioError.message}`);
   }

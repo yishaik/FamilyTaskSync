@@ -14,8 +14,19 @@ export async function checkAndSendReminders() {
     const now = new Date();
     const israelTime = toZonedTime(now, TIMEZONE);
 
+    console.log('Checking reminders at:', {
+      utcTime: now.toISOString(),
+      israelTime: israelTime.toISOString(),
+    });
+
     // Get the time 1 minute ago to create a window for reminders
     const oneMinuteAgo = subMinutes(israelTime, 1);
+
+    // Log the reminder window
+    console.log('Reminder window:', {
+      from: oneMinuteAgo.toISOString(),
+      to: israelTime.toISOString(),
+    });
 
     // Get all tasks that have reminders due in the last minute and haven't been sent yet
     const pendingReminders = await db
@@ -27,11 +38,21 @@ export async function checkAndSendReminders() {
           lt(tasks.reminderTime, israelTime),
           gte(tasks.reminderTime, oneMinuteAgo),
           eq(tasks.completed, false),
-          isNotNull(tasks.assignedTo)
+          isNotNull(tasks.assignedTo),
+          isNotNull(tasks.reminderTime)
         )
       );
 
-    console.log(`Found ${pendingReminders.length} pending reminders to process within the last minute window`);
+    // Log all found tasks
+    console.log('All tasks with reminders:', {
+      count: pendingReminders.length,
+      tasks: pendingReminders.map(task => ({
+        id: task.id,
+        title: task.title,
+        reminderTime: task.reminderTime,
+        assignedTo: task.assignedTo,
+      }))
+    });
 
     for (const task of pendingReminders) {
       if (!task.assignedTo) continue;
@@ -51,7 +72,7 @@ export async function checkAndSendReminders() {
           userName: user.name,
           userPhone: user.phoneNumber,
           notificationPreference: user.notificationPreference,
-          reminderTime: task.reminderTime
+          reminderTime: task.reminderTime?.toISOString()
         });
 
         // Send the reminder
@@ -73,7 +94,10 @@ export async function checkAndSendReminders() {
         console.log(`Successfully processed reminder for task ${task.id} assigned to user ${user.name}`);
       } catch (error) {
         const err = error instanceof Error ? error : new Error('Unknown error');
-        console.error(`Failed to process reminder for task ${task.id}:`, err.message);
+        console.error(`Failed to process reminder for task ${task.id}:`, {
+          error: err.message,
+          stack: err.stack
+        });
       }
     }
 
@@ -85,22 +109,38 @@ export async function checkAndSendReminders() {
         and(
           eq(tasks.smsReminderSent, false),
           lt(tasks.reminderTime, oneMinuteAgo),
-          isNotNull(tasks.assignedTo)
+          isNotNull(tasks.assignedTo),
+          isNotNull(tasks.reminderTime)
         )
       )
       .returning();
 
     if (oldReminders.length > 0) {
-      console.log(`Marked ${oldReminders.length} old reminders as sent to prevent processing`);
+      console.log('Old reminders marked as sent:', {
+        count: oldReminders.length,
+        reminders: oldReminders.map(task => ({
+          id: task.id,
+          title: task.title,
+          reminderTime: task.reminderTime
+        }))
+      });
     }
   } catch (error) {
     const err = error instanceof Error ? error : new Error('Unknown error');
-    console.error('Error checking reminders:', err.message);
+    console.error('Error checking reminders:', {
+      error: err.message,
+      stack: err.stack
+    });
   }
 }
 
 // Run reminder check every minute
-setInterval(checkAndSendReminders, 60 * 1000);
+const checkInterval = setInterval(checkAndSendReminders, 60 * 1000);
 
 // Initial check when the service starts
 checkAndSendReminders();
+
+// Handle cleanup
+process.on('SIGTERM', () => {
+  clearInterval(checkInterval);
+});
