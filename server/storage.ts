@@ -1,5 +1,5 @@
 import { type User, type InsertUser, type Task, type InsertTask, type Notification, type InsertNotification, users, tasks, notifications } from "@shared/schema";
-import { db } from "./db";
+import { db, sql } from "./db";
 import { eq } from "drizzle-orm";
 
 export interface IStorage {
@@ -17,8 +17,10 @@ export interface IStorage {
 
   // Notifications
   getNotifications(userId: number): Promise<Notification[]>;
+  getAllNotificationsWithStatus(): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<void>;
+  updateNotificationDeliveryStatus(id: number, status: string, messageSid?: string, error?: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -44,8 +46,8 @@ export class DatabaseStorage implements IStorage {
   async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
     // Ensure phone number format is correct if being updated
     if (updates.phoneNumber) {
-      updates.phoneNumber = updates.phoneNumber.startsWith('+') 
-        ? updates.phoneNumber 
+      updates.phoneNumber = updates.phoneNumber.startsWith('+')
+        ? updates.phoneNumber
         : `+${updates.phoneNumber}`;
     }
 
@@ -134,6 +136,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(notifications.createdAt);
   }
 
+  async getAllNotificationsWithStatus(): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .orderBy(notifications.createdAt);
+  }
+
   async createNotification(notification: InsertNotification): Promise<Notification> {
     const [newNotification] = await db
       .insert(notifications)
@@ -148,28 +157,54 @@ export class DatabaseStorage implements IStorage {
       .set({ read: true })
       .where(eq(notifications.id, id));
   }
+
+  async updateNotificationDeliveryStatus(
+    id: number,
+    status: string,
+    messageSid?: string,
+    error?: string
+  ): Promise<void> {
+    const updates: any = {
+      deliveryStatus: status,
+      lastAttemptAt: new Date(),
+      deliveryAttempts: sql`delivery_attempts + 1`,
+    };
+
+    if (messageSid) {
+      updates.messageSid = messageSid;
+    }
+
+    if (error) {
+      updates.deliveryError = error;
+    }
+
+    await db
+      .update(notifications)
+      .set(updates)
+      .where(eq(notifications.id, id));
+  }
 }
 
 export const storage = new DatabaseStorage();
 
 const defaultUsers = [
-  { 
-    name: "Mom", 
-    color: "#FF69B4", 
+  {
+    name: "Mom",
+    color: "#FF69B4",
     phoneNumber: null,
-    notificationPreference: "sms" 
+    notificationPreference: "sms" as const
   },
-  { 
-    name: "Dad", 
-    color: "#4169E1", 
+  {
+    name: "Dad",
+    color: "#4169E1",
     phoneNumber: null,
-    notificationPreference: "sms" 
+    notificationPreference: "sms" as const
   },
-  { 
-    name: "Kid", 
-    color: "#32CD32", 
+  {
+    name: "Kid",
+    color: "#32CD32",
     phoneNumber: null,
-    notificationPreference: "sms" 
+    notificationPreference: "sms" as const
   }
 ];
 

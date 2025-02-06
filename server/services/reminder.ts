@@ -74,21 +74,21 @@ export async function checkAndSendReminders() {
           reminderTime: task.reminderTime?.toISOString()
         });
 
-        // Send the reminder
-        await sendTaskReminder(task, user);
-
-        // Mark reminder as sent
-        await db
-          .update(tasks)
-          .set({ smsReminderSent: true })
-          .where(eq(tasks.id, task.id));
-
-        // Create a notification
-        await storage.createNotification({
+        // Create a notification first
+        const notification = await storage.createNotification({
           taskId: task.id,
           userId: user.id,
           message: `Reminder: Task "${task.title}" is due soon.`,
         });
+
+        // Send the reminder with notification ID
+        await sendTaskReminder(task, user, notification.id);
+
+        // Mark reminder as sent in tasks table
+        await db
+          .update(tasks)
+          .set({ smsReminderSent: true })
+          .where(eq(tasks.id, task.id));
 
         console.log(`Successfully processed reminder for task ${task.id} assigned to user ${user.name}`);
       } catch (error) {

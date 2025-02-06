@@ -3,6 +3,9 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { insertTaskSchema, insertNotificationSchema } from "@shared/schema";
 import { toZonedTime } from 'date-fns-tz';
+import { notifications } from "@shared/schema";
+import { eq } from 'drizzle-orm';
+import { db } from "./db";
 
 export function registerRoutes(app: Express) {
   // Users
@@ -24,7 +27,11 @@ export function registerRoutes(app: Express) {
       const user = await storage.updateUser(id, updates);
       res.json(user);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: 'An unknown error occurred' });
+      }
     }
   });
 
@@ -59,7 +66,11 @@ export function registerRoutes(app: Express) {
       res.json(task);
     } catch (error) {
       console.error('Error creating task:', error);
-      res.status(400).json({ message: error.message });
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: 'Failed to create task' });
+      }
     }
   });
 
@@ -98,6 +109,37 @@ export function registerRoutes(app: Express) {
     const id = parseInt(req.params.id);
     await storage.markNotificationAsRead(id);
     res.json({ success: true });
+  });
+
+  app.get("/api/notifications/log", async (_req, res) => {
+    const notifications = await storage.getAllNotificationsWithStatus();
+    res.json(notifications);
+  });
+
+  app.post("/api/notifications/webhook", async (req, res) => {
+    try {
+      const { MessageSid, MessageStatus, ErrorCode, ErrorMessage } = req.body;
+
+      // Find notification by MessageSid
+      const [notification] = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.messageSid, MessageSid));
+
+      if (notification) {
+        await storage.updateNotificationDeliveryStatus(
+          notification.id,
+          MessageStatus,
+          MessageSid,
+          ErrorCode ? `${ErrorCode}: ${ErrorMessage}` : undefined
+        );
+      }
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error processing webhook:', error);
+      res.sendStatus(500);
+    }
   });
 
   return createServer(app);

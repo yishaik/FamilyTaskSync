@@ -2,6 +2,7 @@ import twilio from 'twilio';
 import { type Task, type User } from '@shared/schema';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
+import { storage } from '../storage'; // Fixed import path
 
 const timeZone = 'Asia/Jerusalem';
 
@@ -33,11 +34,12 @@ interface TwilioError extends Error {
   status?: number;
 }
 
-export async function sendTaskReminder(task: Task, user: User) {
+export async function sendTaskReminder(task: Task, user: User, notificationId: number) {
   try {
     // Check if user has a phone number
     if (!user.phoneNumber) {
       console.log(`Skipping message for user ${user.name} (ID: ${user.id}) - No phone number provided`);
+      await storage.updateNotificationDeliveryStatus(notificationId, "failed", undefined, "No phone number provided");
       return null;
     }
 
@@ -55,7 +57,6 @@ export async function sendTaskReminder(task: Task, user: User) {
     const messageBody = `Reminder for ${user.name}: Task "${task.title}" is due ${zonedDueDate ? `on ${format(zonedDueDate, 'MMM d')}` : 'soon'}. ${task.description || ''}`;
 
     // Format the 'to' number based on notification preference
-    // Ensure phone number is in E.164 format (e.g., +972123456789)
     const formattedPhone = user.phoneNumber.startsWith('+') ? user.phoneNumber : `+${user.phoneNumber}`;
 
     const to = user.notificationPreference === 'whatsapp' 
@@ -66,18 +67,12 @@ export async function sendTaskReminder(task: Task, user: User) {
       ? `whatsapp:${TWILIO_PHONE_NUMBER}`
       : TWILIO_PHONE_NUMBER;
 
-    console.log('Sending message with configuration:', {
-      to,
-      from,
-      messageType: user.notificationPreference,
-      messageBody
-    });
-
     try {
       const message = await client.messages.create({
         body: messageBody,
         to,
         from,
+        statusCallback: `${process.env.PUBLIC_URL}/api/notifications/webhook`,
       });
 
       console.log(`${user.notificationPreference.toUpperCase()} message sent successfully:`, {
@@ -87,6 +82,7 @@ export async function sendTaskReminder(task: Task, user: User) {
         dateCreated: message.dateCreated
       });
 
+      await storage.updateNotificationDeliveryStatus(notificationId, "sent", message.sid);
       return message;
     } catch (error) {
       const twilioError = error as TwilioError;
@@ -110,6 +106,14 @@ export async function sendTaskReminder(task: Task, user: User) {
         phoneNumber: user.phoneNumber,
         notificationType: user.notificationPreference
       });
+
+      await storage.updateNotificationDeliveryStatus(
+        notificationId, 
+        "failed", 
+        undefined, 
+        `${twilioError.code}: ${twilioError.message}`
+      );
+
       throw new Error(`Failed to send ${user.notificationPreference} reminder: ${twilioError.message}`);
     }
   } catch (error) {

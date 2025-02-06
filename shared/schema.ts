@@ -29,19 +29,26 @@ export const notifications = pgTable("notifications", {
   message: text("message").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   read: boolean("read").notNull().default(false),
+  // New fields for delivery tracking
+  deliveryStatus: text("delivery_status").notNull().default("pending"), // pending, sent, delivered, failed
+  messageSid: text("message_sid"), // Twilio message ID for tracking
+  deliveryError: text("delivery_error"), // Error message if delivery failed
+  deliveryAttempts: integer("delivery_attempts").notNull().default(0),
+  lastAttemptAt: timestamp("last_attempt_at"),
 });
 
 // Update schemas to handle date properly
 export const insertUserSchema = createInsertSchema(users).extend({
   notificationPreference: z.enum(["sms", "whatsapp"]).default("sms"),
 });
+
 export const insertTaskSchema = createInsertSchema(tasks).extend({
   dueDate: z.string().nullable().optional(),
   reminderTime: z.string().nullable().optional(),
 }).omit({ id: true, smsReminderSent: true });
 
 export const insertNotificationSchema = createInsertSchema(notifications)
-  .omit({ id: true, createdAt: true });
+  .omit({ id: true, createdAt: true, deliveryStatus: true, messageSid: true, deliveryError: true, deliveryAttempts: true, lastAttemptAt: true });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -51,3 +58,4 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export const taskPriorities = ["low", "medium", "high"] as const;
+export const deliveryStatuses = ["pending", "sent", "delivered", "failed"] as const;
