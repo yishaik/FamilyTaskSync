@@ -2,7 +2,7 @@ import { useState } from "react";
 import { type User } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserCog, Pencil, Check, X, Phone } from "lucide-react";
+import { UserCog, Pencil, Phone } from "lucide-react";
 import { SiWhatsapp } from 'react-icons/si';
 import { Input } from "@/components/ui/input";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TestNotificationButton } from "./test-notification-button";
 
 interface UserSwitcherProps {
   users: User[];
@@ -138,6 +139,7 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
           >
             <Pencil className="h-4 w-4" />
           </Button>
+          <TestNotificationButton userId={user.id} userName={user.name} />
         </div>
       ))}
 

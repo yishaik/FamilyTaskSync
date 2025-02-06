@@ -6,6 +6,7 @@ import { toZonedTime } from 'date-fns-tz';
 import { notifications } from "@shared/schema";
 import { eq } from 'drizzle-orm';
 import { db } from "./db";
+import { sendTaskReminder } from './services/sms';
 
 export function registerRoutes(app: Express) {
   // Users
@@ -139,6 +140,48 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Error processing webhook:', error);
       res.sendStatus(500);
+    }
+  });
+
+  app.post("/api/notifications/test/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Create a test notification
+      const notification = await storage.createNotification({
+        taskId: 0, // Using 0 as a special ID for test notifications
+        userId: user.id,
+        message: `Test notification for ${user.name}`,
+        read: false
+      });
+
+      // Create a mock task for the test notification
+      const mockTask = {
+        id: 0,
+        title: "Test Notification",
+        description: "This is a test notification to verify your notification settings.",
+        completed: false,
+        priority: "medium",
+        dueDate: new Date(),
+        reminderTime: new Date(),
+      };
+
+      // Send test notification using the existing SMS service
+      await sendTaskReminder(mockTask, user, notification.id);
+
+      res.json({ success: true, message: "Test notification sent" });
+    } catch (error) {
+      console.error('Error sending test notification:', error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to send test notification",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
