@@ -29,7 +29,7 @@ if (!TWILIO_PHONE_NUMBER.startsWith('+')) {
 const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 interface TwilioError extends Error {
-  code?: string;
+  code?: number;
   status?: number;
 }
 
@@ -51,7 +51,7 @@ export async function sendTaskReminder(task: Task, user: User) {
       twilioNumber: TWILIO_PHONE_NUMBER
     });
 
-    const zonedDueDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
+    const zonedDueDate = task.dueDate ? toZonedTime(task.dueDate, timeZone) : null;
     const messageBody = `Reminder for ${user.name}: Task "${task.title}" is due ${zonedDueDate ? `on ${format(zonedDueDate, 'MMM d')}` : 'soon'}. ${task.description || ''}`;
 
     // Format the 'to' number based on notification preference

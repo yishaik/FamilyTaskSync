@@ -1,16 +1,16 @@
 import { db } from '../db';
 import { storage } from '../storage';
 import { sendTaskReminder } from './sms';
-import { lt, eq, and, isNotNull, gte } from 'drizzle-orm';
+import { lt, eq, and, isNotNull, gte, between } from 'drizzle-orm';
 import { tasks } from '@shared/schema';
 import { toZonedTime } from 'date-fns-tz';
-import { subMinutes } from 'date-fns';
+import { subMinutes, addMinutes } from 'date-fns';
 
 const TIMEZONE = 'Asia/Jerusalem';
 
 export async function checkAndSendReminders() {
   try {
-    // Get current time in Israel timezone
+    // Get current time in UTC
     const now = new Date();
     const israelTime = toZonedTime(now, TIMEZONE);
 
@@ -19,32 +19,31 @@ export async function checkAndSendReminders() {
       israelTime: israelTime.toISOString(),
     });
 
-    // Get the time 1 minute ago to create a window for reminders
-    const oneMinuteAgo = subMinutes(israelTime, 1);
+    // Create a 2-minute window for reminders (1 minute before and after current time)
+    // to avoid missing any reminders due to processing delays
+    const windowStart = subMinutes(now, 1);
+    const windowEnd = addMinutes(now, 1);
 
-    // Log the reminder window
     console.log('Reminder window:', {
-      from: oneMinuteAgo.toISOString(),
-      to: israelTime.toISOString(),
+      start: windowStart.toISOString(),
+      end: windowEnd.toISOString(),
     });
 
-    // Get all tasks that have reminders due in the last minute and haven't been sent yet
+    // Get all tasks that have reminders due in the window and haven't been sent yet
     const pendingReminders = await db
       .select()
       .from(tasks)
       .where(
         and(
           eq(tasks.smsReminderSent, false),
-          lt(tasks.reminderTime, israelTime),
-          gte(tasks.reminderTime, oneMinuteAgo),
+          between(tasks.reminderTime, windowStart, windowEnd),
           eq(tasks.completed, false),
           isNotNull(tasks.assignedTo),
           isNotNull(tasks.reminderTime)
         )
       );
 
-    // Log all found tasks
-    console.log('All tasks with reminders:', {
+    console.log('Found tasks with pending reminders:', {
       count: pendingReminders.length,
       tasks: pendingReminders.map(task => ({
         id: task.id,
@@ -101,14 +100,17 @@ export async function checkAndSendReminders() {
       }
     }
 
-    // Mark old unprocessed reminders as sent to prevent them from being processed
+    // Mark old unprocessed reminders as sent
+    // Only mark reminders that are more than 5 minutes old to prevent premature marking
+    const fiveMinutesAgo = subMinutes(now, 5);
+
     const oldReminders = await db
       .update(tasks)
       .set({ smsReminderSent: true })
       .where(
         and(
           eq(tasks.smsReminderSent, false),
-          lt(tasks.reminderTime, oneMinuteAgo),
+          lt(tasks.reminderTime, fiveMinutesAgo),
           isNotNull(tasks.assignedTo),
           isNotNull(tasks.reminderTime)
         )
