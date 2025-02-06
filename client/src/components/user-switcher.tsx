@@ -185,7 +185,12 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
                       SMS
                     </span>
                   </SelectItem>
-                  
+                  <SelectItem value="whatsapp">
+                    <span className="flex items-center gap-2">
+                      <SiWhatsapp className="h-4 w-4" />
+                      WhatsApp
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
