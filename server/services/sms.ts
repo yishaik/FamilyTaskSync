@@ -18,17 +18,34 @@ export async function sendTaskReminder(task: Task, user: User) {
       return null;
     }
 
+    console.log('Attempting to send reminder with following details:', {
+      userName: user.name,
+      userId: user.id,
+      phoneNumber: user.phoneNumber,
+      notificationType: user.notificationPreference,
+      taskTitle: task.title
+    });
+
     const zonedDueDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
     const messageBody = `Reminder for ${user.name}: Task "${task.title}" is due ${zonedDueDate ? `on ${format(zonedDueDate, 'MMM d')}` : 'soon'}. ${task.description || ''}`;
 
     // Format the 'to' number based on notification preference
+    // Ensure phone number is in E.164 format (e.g., +972123456789)
+    const formattedPhone = user.phoneNumber.startsWith('+') ? user.phoneNumber : `+${user.phoneNumber}`;
+
     const to = user.notificationPreference === 'whatsapp' 
-      ? `whatsapp:${user.phoneNumber}`
-      : user.phoneNumber;
+      ? `whatsapp:${formattedPhone}`
+      : formattedPhone;
 
     const from = user.notificationPreference === 'whatsapp'
       ? `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`
       : process.env.TWILIO_PHONE_NUMBER;
+
+    console.log('Sending message with configuration:', {
+      to,
+      from,
+      messageType: user.notificationPreference
+    });
 
     const message = await client.messages.create({
       body: messageBody,

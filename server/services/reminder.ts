@@ -32,6 +32,7 @@ export async function checkAndSendReminders() {
       );
 
     console.log(`Found ${pendingReminders.length} pending reminders to process within the last minute window`);
+    console.log('Pending reminders:', JSON.stringify(pendingReminders, null, 2));
 
     for (const task of pendingReminders) {
       if (!task.assignedTo) continue;
@@ -43,6 +44,14 @@ export async function checkAndSendReminders() {
           console.log(`No user found for task ${task.id}, skipping reminder`);
           continue;
         }
+
+        console.log(`Processing reminder for task ${task.id}:`, {
+          taskTitle: task.title,
+          userName: user.name,
+          userPhone: user.phoneNumber,
+          notificationPreference: user.notificationPreference,
+          reminderTime: task.reminderTime
+        });
 
         // Send the reminder
         await sendTaskReminder(task, user);
