@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertTaskSchema, insertNotificationSchema } from "@shared/schema";
+import { toZonedTime } from 'date-fns-tz';
 
 export function registerRoutes(app: Express) {
   // Users
@@ -14,6 +15,12 @@ export function registerRoutes(app: Express) {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
+
+      // Validate phone number format if it's being updated
+      if (updates.phoneNumber && !updates.phoneNumber.startsWith('+')) {
+        updates.phoneNumber = `+${updates.phoneNumber}`;
+      }
+
       const user = await storage.updateUser(id, updates);
       res.json(user);
     } catch (error) {
@@ -28,9 +35,32 @@ export function registerRoutes(app: Express) {
   });
 
   app.post("/api/tasks", async (req, res) => {
-    const parsed = insertTaskSchema.parse(req.body);
-    const task = await storage.createTask(parsed);
-    res.json(task);
+    try {
+      console.log('Creating new task with data:', req.body);
+
+      const parsed = insertTaskSchema.parse(req.body);
+
+      // Convert reminder time to Date object if present
+      if (parsed.reminderTime) {
+        console.log('Processing reminder time:', {
+          original: parsed.reminderTime,
+          parsed: new Date(parsed.reminderTime)
+        });
+      }
+
+      const task = await storage.createTask(parsed);
+
+      console.log('Task created successfully:', {
+        taskId: task.id,
+        reminderTime: task.reminderTime,
+        assignedTo: task.assignedTo
+      });
+
+      res.json(task);
+    } catch (error) {
+      console.error('Error creating task:', error);
+      res.status(400).json({ message: error.message });
+    }
   });
 
   app.patch("/api/tasks/:id", async (req, res) => {

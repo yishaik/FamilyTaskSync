@@ -55,21 +55,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTask(insertTask: InsertTask): Promise<Task> {
+    console.log('Storage: Creating task with data:', insertTask);
+
+    // Ensure dates are properly parsed
     const taskData = {
       ...insertTask,
       dueDate: insertTask.dueDate ? new Date(insertTask.dueDate) : null,
       reminderTime: insertTask.reminderTime ? new Date(insertTask.reminderTime) : null,
     };
+
+    console.log('Storage: Processed task data:', {
+      ...taskData,
+      dueDate: taskData.dueDate?.toISOString(),
+      reminderTime: taskData.reminderTime?.toISOString(),
+    });
+
     const [task] = await db.insert(tasks).values(taskData).returning();
+
+    console.log('Storage: Task created:', {
+      id: task.id,
+      title: task.title,
+      reminderTime: task.reminderTime?.toISOString(),
+      assignedTo: task.assignedTo
+    });
+
     return task;
   }
 
   async updateTask(id: number, updates: Partial<InsertTask>): Promise<Task> {
+    console.log('Storage: Updating task:', { id, updates });
+
     const updateData = {
       ...updates,
       dueDate: updates.dueDate ? new Date(updates.dueDate) : undefined,
       reminderTime: updates.reminderTime ? new Date(updates.reminderTime) : undefined,
     };
+
+    console.log('Storage: Processed update data:', {
+      ...updateData,
+      dueDate: updateData.dueDate?.toISOString(),
+      reminderTime: updateData.reminderTime?.toISOString(),
+    });
 
     const [task] = await db
       .update(tasks)
