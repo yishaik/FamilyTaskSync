@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
@@ -45,13 +46,13 @@ export function TestNotificationButton({ userId, userName }: TestNotificationBut
   return (
     <Button
       variant="outline"
-      size="sm"
+      size="icon"
       onClick={sendTestNotification}
       disabled={isSending}
       className="ml-2"
+      title={t('notifications.test.send')}
     >
-      <Bell className="h-4 w-4 mr-1" />
-      {isSending ? t('notifications.test.sending') : t('notifications.test.send')}
+      <Bell className="h-4 w-4" />
     </Button>
   );
 }
