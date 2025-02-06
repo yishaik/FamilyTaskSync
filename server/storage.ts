@@ -21,6 +21,7 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<void>;
   updateNotificationDeliveryStatus(id: number, status: string, messageSid?: string, error?: string): Promise<void>;
+  getNotificationByMessageSid(messageSid: string): Promise<Notification[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -182,6 +183,12 @@ export class DatabaseStorage implements IStorage {
       .update(notifications)
       .set(updates)
       .where(eq(notifications.id, id));
+  }
+  async getNotificationByMessageSid(messageSid: string): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.messageSid, messageSid));
   }
 }
 

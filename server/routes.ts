@@ -7,6 +7,8 @@ import { notifications } from "@shared/schema";
 import { eq } from 'drizzle-orm';
 import { db } from "./db";
 import { sendTaskReminder } from './services/sms';
+import { notificationService } from './services/NotificationService';
+import { NotificationError, ValidationError } from './services/errors';
 
 export function registerRoutes(app: Express) {
   // Users
@@ -117,32 +119,6 @@ export function registerRoutes(app: Express) {
     res.json(notifications);
   });
 
-  app.post("/api/notifications/webhook", async (req, res) => {
-    try {
-      const { MessageSid, MessageStatus, ErrorCode, ErrorMessage } = req.body;
-
-      // Find notification by MessageSid
-      const [notification] = await db
-        .select()
-        .from(notifications)
-        .where(eq(notifications.messageSid, MessageSid));
-
-      if (notification) {
-        await storage.updateNotificationDeliveryStatus(
-          notification.id,
-          MessageStatus,
-          MessageSid,
-          ErrorCode ? `${ErrorCode}: ${ErrorMessage}` : undefined
-        );
-      }
-
-      res.sendStatus(200);
-    } catch (error) {
-      console.error('Error processing webhook:', error);
-      res.sendStatus(500);
-    }
-  });
-
   app.post("/api/notifications/test/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
@@ -152,14 +128,7 @@ export function registerRoutes(app: Express) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      if (!user.phoneNumber) {
-        return res.status(400).json({
-          success: false,
-          message: "No phone number configured for this user"
-        });
-      }
-
-      // Create a test task first
+      // Create a test task
       const testTask = await storage.createTask({
         title: "Test Notification",
         description: "This is a test notification to verify your notification settings.",
@@ -179,41 +148,39 @@ export function registerRoutes(app: Express) {
       });
 
       try {
-        // Send test notification using the existing SMS service
-        const result = await sendTaskReminder(testTask, user, notification.id);
-
-        if (result) {
-          return res.json({ 
-            success: true, 
-            message: `Test notification queued successfully via ${user.notificationPreference}`,
-            status: result.status
-          });
-        } else {
+        const result = await notificationService.sendTaskReminder(testTask, user, notification.id);
+        return res.json({
+          success: true,
+          message: `Test notification queued successfully via ${result.channel}`,
+          status: result.status
+        });
+      } catch (error) {
+        if (error instanceof ValidationError) {
           return res.status(400).json({
             success: false,
-            message: "Failed to send notification - no valid delivery method available"
+            message: error.message
           });
         }
-      } catch (error) {
-        // Check if it's a WhatsApp configuration error
-        const err = error as Error;
-        if (err.message.includes('WhatsApp not configured')) {
-          return res.json({
-            success: true,
-            message: "WhatsApp not available, notification sent via SMS instead",
-            fallback: true
-          });
-        }
-
         throw error;
       }
     } catch (error) {
       console.error('Error sending test notification:', error);
-      res.status(500).json({
+      const status = error instanceof NotificationError ? error.status : 500;
+      res.status(status).json({
         success: false,
-        message: "Failed to send test notification",
-        error: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error occurred"
       });
+    }
+  });
+
+  app.post("/api/notifications/webhook", async (req, res) => {
+    try {
+      const { MessageSid, MessageStatus, ErrorCode, ErrorMessage } = req.body;
+      await notificationService.processWebhook(MessageSid, MessageStatus, ErrorCode, ErrorMessage);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error processing webhook:', error);
+      res.sendStatus(500);
     }
   });
 
