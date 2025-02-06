@@ -152,27 +152,27 @@ export function registerRoutes(app: Express) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Create a test task first
+      const testTask = await storage.createTask({
+        title: "Test Notification",
+        description: "This is a test notification to verify your notification settings.",
+        assignedTo: user.id,
+        completed: false,
+        priority: "medium",
+        dueDate: new Date().toISOString(),
+        reminderTime: new Date().toISOString(),
+      });
+
       // Create a test notification
       const notification = await storage.createNotification({
-        taskId: 0, // Using 0 as a special ID for test notifications
+        taskId: testTask.id,
         userId: user.id,
         message: `Test notification for ${user.name}`,
         read: false
       });
 
-      // Create a mock task for the test notification
-      const mockTask = {
-        id: 0,
-        title: "Test Notification",
-        description: "This is a test notification to verify your notification settings.",
-        completed: false,
-        priority: "medium",
-        dueDate: new Date(),
-        reminderTime: new Date(),
-      };
-
       // Send test notification using the existing SMS service
-      await sendTaskReminder(mockTask, user, notification.id);
+      await sendTaskReminder(testTask, user, notification.id);
 
       res.json({ success: true, message: "Test notification sent" });
     } catch (error) {
