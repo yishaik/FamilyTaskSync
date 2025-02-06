@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { insertTaskSchema, taskPriorities, type User, type InsertTask } from "@shared/schema";
+import { insertTaskSchema, taskPriorities, recurrencePatterns, type User, type InsertTask } from "@shared/schema";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, Clock, Bell } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toZonedTime } from 'date-fns-tz';
+import {Checkbox} from "@/components/ui/checkbox";
 
 interface TaskFormProps {
   currentUser: User | null;
@@ -33,9 +34,14 @@ export function TaskForm({ currentUser }: TaskFormProps) {
       completed: false,
       assignedTo: currentUser?.id || null,
       dueDate: "",
-      reminderTime: ""
+      reminderTime: "",
+      recurrencePattern: null,
+      recurrenceEndDate: null,
+      isRecurring: false
     }
   });
+
+  const isRecurring = form.watch("isRecurring");
 
   const { mutate: createTask, isPending } = useMutation({
     mutationFn: async (data: InsertTask) => {
@@ -43,6 +49,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
         ...data,
         dueDate: data.dueDate ? toZonedTime(new Date(data.dueDate), 'Asia/Jerusalem').toISOString() : null,
         reminderTime: data.reminderTime ? toZonedTime(new Date(data.reminderTime), 'Asia/Jerusalem').toISOString() : null,
+        recurrenceEndDate: data.recurrenceEndDate ? toZonedTime(new Date(data.recurrenceEndDate), 'Asia/Jerusalem').toISOString() : null,
         assignedTo: data.assignedTo || null
       };
       const res = await apiRequest("POST", "/api/tasks", formattedData);
@@ -218,6 +225,91 @@ export function TaskForm({ currentUser }: TaskFormProps) {
               </FormItem>
             )}
           />
+        </div>
+
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="isRecurring"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">
+                    {t('tasks.form.recurring.label')}
+                  </FormLabel>
+                  <FormDescription>
+                    {t('tasks.form.recurring.description')}
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          {isRecurring && (
+            <div className="grid gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="recurrencePattern"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('tasks.form.recurrencePattern.label')}</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value || undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('tasks.form.recurrencePattern.placeholder')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {recurrencePatterns.map(pattern => (
+                          <SelectItem key={pattern} value={pattern}>
+                            {t(`tasks.recurrencePattern.${pattern}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      {t('tasks.form.recurrencePattern.description')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="recurrenceEndDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('tasks.form.recurrenceEndDate.label')}</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          {...field}
+                          value={field.value || ''}
+                          className="pl-10"
+                        />
+                      </FormControl>
+                      <CalendarIcon className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+                    </div>
+                    <FormDescription>
+                      {t('tasks.form.recurrenceEndDate.description')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
         </div>
 
         <Button 

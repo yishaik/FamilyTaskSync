@@ -7,7 +7,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   color: text("color").notNull(),
   phoneNumber: text("phone_number"),
-  notificationPreference: text("notification_preference").notNull().default("sms"), // 'sms' or 'whatsapp'
+  notificationPreference: text("notification_preference").notNull().default("sms"),
 });
 
 export const tasks = pgTable("tasks", {
@@ -20,6 +20,11 @@ export const tasks = pgTable("tasks", {
   dueDate: timestamp("due_date"),
   reminderTime: timestamp("reminder_time"),
   smsReminderSent: boolean("sms_reminder_sent").notNull().default(false),
+  // New fields for recurring tasks
+  recurrencePattern: text("recurrence_pattern"), // daily, weekly, monthly
+  recurrenceEndDate: timestamp("recurrence_end_date"),
+  parentTaskId: integer("parent_task_id").references(() => tasks.id, { onDelete: 'set null' }),
+  isRecurring: boolean("is_recurring").notNull().default(false),
 });
 
 export const notifications = pgTable("notifications", {
@@ -29,10 +34,9 @@ export const notifications = pgTable("notifications", {
   message: text("message").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   read: boolean("read").notNull().default(false),
-  // New fields for delivery tracking
-  deliveryStatus: text("delivery_status").notNull().default("pending"), // pending, sent, delivered, failed
-  messageSid: text("message_sid"), // Twilio message ID for tracking
-  deliveryError: text("delivery_error"), // Error message if delivery failed
+  deliveryStatus: text("delivery_status").notNull().default("pending"),
+  messageSid: text("message_sid"),
+  deliveryError: text("delivery_error"),
   deliveryAttempts: integer("delivery_attempts").notNull().default(0),
   lastAttemptAt: timestamp("last_attempt_at"),
 });
@@ -42,10 +46,15 @@ export const insertUserSchema = createInsertSchema(users).extend({
   notificationPreference: z.enum(["sms", "whatsapp"]).default("sms"),
 });
 
+export const recurrencePatterns = ["daily", "weekly", "monthly"] as const;
+
 export const insertTaskSchema = createInsertSchema(tasks).extend({
   dueDate: z.string().nullable().optional(),
   reminderTime: z.string().nullable().optional(),
-}).omit({ id: true, smsReminderSent: true });
+  recurrencePattern: z.enum(recurrencePatterns).nullable().optional(),
+  recurrenceEndDate: z.string().nullable().optional(),
+  isRecurring: z.boolean().optional(),
+}).omit({ id: true, smsReminderSent: true, parentTaskId: true });
 
 export const insertNotificationSchema = createInsertSchema(notifications)
   .omit({ id: true, createdAt: true, deliveryStatus: true, messageSid: true, deliveryError: true, deliveryAttempts: true, lastAttemptAt: true });

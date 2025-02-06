@@ -40,6 +40,19 @@
         "label": "Set Reminder",
         "description": "When should we remind you about this task?"
       },
+      "recurring": {
+        "label": "Recurring Task",
+        "description": "Does this task repeat on a schedule?"
+      },
+      "recurrencePattern": {
+        "label": "Repeat",
+        "placeholder": "Select how often the task repeats",
+        "description": "Choose how frequently this task should repeat"
+      },
+      "recurrenceEndDate": {
+        "label": "Repeat Until",
+        "description": "When should this task stop repeating? (Optional)"
+      },
       "submit": {
         "default": "Create Task",
         "loading": "Creating Task..."
@@ -55,6 +68,11 @@
       "low": "Low Priority",
       "medium": "Medium Priority",
       "high": "High Priority"
+    },
+    "recurrencePattern": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
     }
   },
   "notifications": {

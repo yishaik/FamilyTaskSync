@@ -1,6 +1,7 @@
 import { type User, type InsertUser, type Task, type InsertTask, type Notification, type InsertNotification, users, tasks, notifications } from "@shared/schema";
 import { db, sql } from "./db";
 import { eq } from "drizzle-orm";
+import { addDays, addWeeks, addMonths } from "date-fns";
 
 export interface IStorage {
   // Users
@@ -14,6 +15,7 @@ export interface IStorage {
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: number, task: Partial<InsertTask>): Promise<Task>;
   deleteTask(id: number): Promise<void>;
+  createRecurringTaskInstances(task: Task): Promise<void>;
 
   // Notifications
   getNotifications(userId: number): Promise<Notification[]>;
@@ -77,21 +79,28 @@ export class DatabaseStorage implements IStorage {
       ...insertTask,
       dueDate: insertTask.dueDate ? new Date(insertTask.dueDate) : null,
       reminderTime: insertTask.reminderTime ? new Date(insertTask.reminderTime) : null,
+      recurrenceEndDate: insertTask.recurrenceEndDate ? new Date(insertTask.recurrenceEndDate) : null,
     };
 
     console.log('Storage: Processed task data:', {
       ...taskData,
       dueDate: taskData.dueDate?.toISOString(),
       reminderTime: taskData.reminderTime?.toISOString(),
+      recurrenceEndDate: taskData.recurrenceEndDate?.toISOString(),
     });
 
     const [task] = await db.insert(tasks).values(taskData).returning();
+
+    if (task.isRecurring && task.recurrencePattern && task.dueDate) {
+      await this.createRecurringTaskInstances(task);
+    }
 
     console.log('Storage: Task created:', {
       id: task.id,
       title: task.title,
       reminderTime: task.reminderTime?.toISOString(),
-      assignedTo: task.assignedTo
+      assignedTo: task.assignedTo,
+      isRecurring: task.isRecurring
     });
 
     return task;
@@ -189,6 +198,50 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(notifications)
       .where(eq(notifications.messageSid, messageSid));
+  }
+  async createRecurringTaskInstances(parentTask: Task): Promise<void> {
+    if (!parentTask.dueDate || !parentTask.recurrencePattern || !parentTask.isRecurring) {
+      return;
+    }
+
+    const endDate = parentTask.recurrenceEndDate || addMonths(new Date(parentTask.dueDate), 3);
+    let currentDate = new Date(parentTask.dueDate);
+
+    while (currentDate <= endDate) {
+      // Calculate next occurrence based on pattern
+      let nextDate: Date;
+      switch (parentTask.recurrencePattern) {
+        case 'daily':
+          nextDate = addDays(currentDate, 1);
+          break;
+        case 'weekly':
+          nextDate = addWeeks(currentDate, 1);
+          break;
+        case 'monthly':
+          nextDate = addMonths(currentDate, 1);
+          break;
+        default:
+          return;
+      }
+
+      // Create the recurring instance
+      const instanceData = {
+        title: parentTask.title,
+        description: parentTask.description,
+        assignedTo: parentTask.assignedTo,
+        priority: parentTask.priority,
+        dueDate: nextDate,
+        reminderTime: parentTask.reminderTime ? new Date(
+          nextDate.getTime() + 
+          (new Date(parentTask.reminderTime).getTime() - new Date(parentTask.dueDate).getTime())
+        ) : null,
+        parentTaskId: parentTask.id,
+        isRecurring: false // Child instances are not themselves recurring
+      };
+
+      await db.insert(tasks).values(instanceData);
+      currentDate = nextDate;
+    }
   }
 }
 
