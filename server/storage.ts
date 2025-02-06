@@ -32,14 +32,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    // Ensure phone number format is correct if provided
+    if (insertUser.phoneNumber && !insertUser.phoneNumber.startsWith('+')) {
+      insertUser.phoneNumber = `+${insertUser.phoneNumber}`;
+    }
+
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    // Ensure phone number format is correct if being updated
+    if (updates.phoneNumber) {
+      updates.phoneNumber = updates.phoneNumber.startsWith('+') 
+        ? updates.phoneNumber 
+        : `+${updates.phoneNumber}`;
+    }
+
     const [user] = await db
       .update(users)
-      .set({ ...updates })
+      .set(updates)
       .where(eq(users.id, id))
       .returning();
 
@@ -139,13 +151,29 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
-async function initializeDefaultUsers() {
-  const defaultUsers = [
-    { name: "Mom", color: "#FF69B4", phoneNumber: null },
-    { name: "Dad", color: "#4169E1", phoneNumber: null },
-    { name: "Kid", color: "#32CD32", phoneNumber: null }
-  ];
 
+const defaultUsers = [
+  { 
+    name: "Mom", 
+    color: "#FF69B4", 
+    phoneNumber: null,
+    notificationPreference: "sms" 
+  },
+  { 
+    name: "Dad", 
+    color: "#4169E1", 
+    phoneNumber: null,
+    notificationPreference: "sms" 
+  },
+  { 
+    name: "Kid", 
+    color: "#32CD32", 
+    phoneNumber: null,
+    notificationPreference: "sms" 
+  }
+];
+
+async function initializeDefaultUsers() {
   const existingUsers = await storage.getUsers();
   if (existingUsers.length === 0) {
     for (const user of defaultUsers) {

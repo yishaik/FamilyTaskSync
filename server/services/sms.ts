@@ -15,6 +15,17 @@ if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
   throw new Error('Missing required Twilio credentials');
 }
 
+// Validate Twilio credentials format
+if (!TWILIO_ACCOUNT_SID.startsWith('AC')) {
+  console.error('Invalid Twilio Account SID format');
+  throw new Error('Invalid Twilio Account SID format - should start with AC');
+}
+
+if (!TWILIO_PHONE_NUMBER.startsWith('+')) {
+  console.error('Invalid Twilio Phone Number format');
+  throw new Error('Invalid Twilio Phone Number format - should start with +');
+}
+
 const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 interface TwilioError extends Error {
@@ -62,32 +73,51 @@ export async function sendTaskReminder(task: Task, user: User) {
       messageBody
     });
 
-    const message = await client.messages.create({
-      body: messageBody,
-      to,
-      from,
-    });
+    try {
+      const message = await client.messages.create({
+        body: messageBody,
+        to,
+        from,
+      });
 
-    console.log(`${user.notificationPreference.toUpperCase()} message sent successfully:`, {
-      userName: user.name,
-      messageSid: message.sid,
-      status: message.status,
-      dateCreated: message.dateCreated
-    });
+      console.log(`${user.notificationPreference.toUpperCase()} message sent successfully:`, {
+        userName: user.name,
+        messageSid: message.sid,
+        status: message.status,
+        dateCreated: message.dateCreated
+      });
 
-    return message;
+      return message;
+    } catch (error) {
+      const twilioError = error as TwilioError;
+
+      // Log specific error types for better debugging
+      if (twilioError.code === 21211) {
+        console.error('Invalid phone number format:', user.phoneNumber);
+      } else if (twilioError.code === 21608) {
+        console.error('Unverified phone number. The number must be verified in the Twilio console first.');
+      } else if (twilioError.code === 21614) {
+        console.error('Invalid Twilio phone number.');
+      }
+
+      console.error('Error sending message:', {
+        error: twilioError.message,
+        code: twilioError.code,
+        status: twilioError.status,
+        stack: twilioError.stack,
+        userName: user.name,
+        userId: user.id,
+        phoneNumber: user.phoneNumber,
+        notificationType: user.notificationPreference
+      });
+      throw new Error(`Failed to send ${user.notificationPreference} reminder: ${twilioError.message}`);
+    }
   } catch (error) {
-    const twilioError = error as TwilioError;
-    console.error('Error sending message:', {
-      error: twilioError.message,
-      code: twilioError.code,
-      status: twilioError.status,
-      stack: twilioError.stack,
-      userName: user.name,
-      userId: user.id,
-      phoneNumber: user.phoneNumber,
-      notificationType: user.notificationPreference
+    const err = error instanceof Error ? error : new Error('Unknown error');
+    console.error('Error in sendTaskReminder:', {
+      error: err.message,
+      stack: err.stack
     });
-    throw new Error(`Failed to send ${user.notificationPreference} reminder: ${twilioError.message}`);
+    throw err;
   }
 }
