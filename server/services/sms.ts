@@ -5,10 +5,22 @@ import { toZonedTime } from 'date-fns-tz';
 
 const timeZone = 'Asia/Jerusalem';
 
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+// Validate required environment variables
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+
+if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+  console.error('Missing required Twilio credentials');
+  throw new Error('Missing required Twilio credentials');
+}
+
+const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
+interface TwilioError extends Error {
+  code?: string;
+  status?: number;
+}
 
 export async function sendTaskReminder(task: Task, user: User) {
   try {
@@ -23,7 +35,8 @@ export async function sendTaskReminder(task: Task, user: User) {
       userId: user.id,
       phoneNumber: user.phoneNumber,
       notificationType: user.notificationPreference,
-      taskTitle: task.title
+      taskTitle: task.title,
+      taskDueDate: task.dueDate
     });
 
     const zonedDueDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
@@ -38,13 +51,14 @@ export async function sendTaskReminder(task: Task, user: User) {
       : formattedPhone;
 
     const from = user.notificationPreference === 'whatsapp'
-      ? `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`
-      : process.env.TWILIO_PHONE_NUMBER;
+      ? `whatsapp:${TWILIO_PHONE_NUMBER}`
+      : TWILIO_PHONE_NUMBER;
 
     console.log('Sending message with configuration:', {
       to,
       from,
-      messageType: user.notificationPreference
+      messageType: user.notificationPreference,
+      messageBody
     });
 
     const message = await client.messages.create({
@@ -56,11 +70,12 @@ export async function sendTaskReminder(task: Task, user: User) {
     console.log(`${user.notificationPreference.toUpperCase()} message sent successfully for ${user.name}, message SID: ${message.sid}`);
     return message;
   } catch (error) {
-    console.error('Error sending message:', error);
-    if (error.code) {
-      console.error(`Twilio Error Code: ${error.code}`);
-      console.error(`Twilio Error Message: ${error.message}`);
-    }
-    throw new Error(`Failed to send ${user.notificationPreference} reminder`);
+    const twilioError = error as TwilioError;
+    console.error('Error sending message:', {
+      error: twilioError.message,
+      code: twilioError.code,
+      status: twilioError.status
+    });
+    throw new Error(`Failed to send ${user.notificationPreference} reminder: ${twilioError.message}`);
   }
 }

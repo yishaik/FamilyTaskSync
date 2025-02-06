@@ -3,7 +3,7 @@ import { storage } from '../storage';
 import { sendTaskReminder } from './sms';
 import { lt, eq, and, isNotNull, gte } from 'drizzle-orm';
 import { tasks } from '@shared/schema';
-import { toZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { subMinutes } from 'date-fns';
 
 const TIMEZONE = 'Asia/Jerusalem';
@@ -32,7 +32,6 @@ export async function checkAndSendReminders() {
       );
 
     console.log(`Found ${pendingReminders.length} pending reminders to process within the last minute window`);
-    console.log('Pending reminders:', JSON.stringify(pendingReminders, null, 2));
 
     for (const task of pendingReminders) {
       if (!task.assignedTo) continue;
@@ -46,7 +45,9 @@ export async function checkAndSendReminders() {
         }
 
         console.log(`Processing reminder for task ${task.id}:`, {
+          taskId: task.id,
           taskTitle: task.title,
+          userId: user.id,
           userName: user.name,
           userPhone: user.phoneNumber,
           notificationPreference: user.notificationPreference,
@@ -71,7 +72,8 @@ export async function checkAndSendReminders() {
 
         console.log(`Successfully processed reminder for task ${task.id} assigned to user ${user.name}`);
       } catch (error) {
-        console.error(`Failed to process reminder for task ${task.id}:`, error);
+        const err = error instanceof Error ? error : new Error('Unknown error');
+        console.error(`Failed to process reminder for task ${task.id}:`, err.message);
       }
     }
 
@@ -92,7 +94,8 @@ export async function checkAndSendReminders() {
       console.log(`Marked ${oldReminders.length} old reminders as sent to prevent processing`);
     }
   } catch (error) {
-    console.error('Error checking reminders:', error);
+    const err = error instanceof Error ? error : new Error('Unknown error');
+    console.error('Error checking reminders:', err.message);
   }
 }
 
