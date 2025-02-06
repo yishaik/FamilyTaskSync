@@ -61,41 +61,8 @@ export async function sendTaskReminder(task: Task, user: User, notificationId: n
     // Format the 'to' number based on notification preference
     const formattedPhone = user.phoneNumber.startsWith('+') ? user.phoneNumber : `+${user.phoneNumber}`;
 
-    // For WhatsApp, first check if the channel is available
-    if (user.notificationPreference === 'whatsapp') {
-      try {
-        // Try to fetch WhatsApp channel info
-        const whatsappChannel = await client.conversations.v1.services.list({ 
-          friendlyName: 'WhatsApp' 
-        });
-
-        if (!whatsappChannel || whatsappChannel.length === 0) {
-          console.log('WhatsApp channel not configured, falling back to SMS');
-          // Update user's preference to SMS
-          await storage.updateUser(user.id, { notificationPreference: 'sms' });
-          // Update notification with fallback info
-          await storage.updateNotificationDeliveryStatus(
-            notificationId,
-            "pending",
-            undefined,
-            "WhatsApp not configured, falling back to SMS"
-          );
-          // Set to SMS for this delivery
-          user.notificationPreference = 'sms';
-        }
-      } catch (error) {
-        console.log('Error checking WhatsApp availability, falling back to SMS:', error);
-        user.notificationPreference = 'sms';
-      }
-    }
-
-    const to = user.notificationPreference === 'whatsapp' 
-      ? `whatsapp:${formattedPhone}`
-      : formattedPhone;
-
-    const from = user.notificationPreference === 'whatsapp'
-      ? `whatsapp:${TWILIO_PHONE_NUMBER}`
-      : TWILIO_PHONE_NUMBER;
+    const to = formattedPhone;
+    const from = TWILIO_PHONE_NUMBER;
 
     try {
       const message = await client.messages.create({
