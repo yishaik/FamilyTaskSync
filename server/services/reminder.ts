@@ -1,22 +1,22 @@
 import { db } from '../db';
 import { storage } from '../storage';
-import { sendTaskReminder } from './sms';
-import { lt, eq, and, isNotNull, gte, between } from 'drizzle-orm';
+import { notificationService } from './NotificationService';
+import { lt, eq, and, isNotNull, between } from 'drizzle-orm';
 import { tasks } from '@shared/schema';
 import { toZonedTime } from 'date-fns-tz';
 import { subMinutes, addMinutes } from 'date-fns';
 
-const TIMEZONE = 'Asia/Jerusalem';
+const TIMEZONE = process.env.TZ || 'UTC';
 
 export async function checkAndSendReminders() {
   try {
     // Get current time in UTC
     const now = new Date();
-    const israelTime = toZonedTime(now, TIMEZONE);
+    const localTime = toZonedTime(now, TIMEZONE);
 
     console.log('Checking reminders at:', {
       utcTime: now.toISOString(),
-      israelTime: israelTime.toISOString(),
+      localTime: localTime.toISOString(),
     });
 
     // Create a 2-minute window for reminders (1 minute before and after current time)
@@ -81,8 +81,8 @@ export async function checkAndSendReminders() {
           message: `Reminder: Task "${task.title}" is due soon.`,
         });
 
-        // Send the reminder with notification ID
-        await sendTaskReminder(task, user, notification.id);
+        // Send the reminder with notification ID using the consolidated service
+        await notificationService.sendTaskReminder(task, user, notification.id);
 
         // Mark reminder as sent in tasks table
         await db

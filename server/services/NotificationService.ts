@@ -21,6 +21,15 @@ export class NotificationService {
     if (!config.twilio.accountSid || !config.twilio.authToken || !config.twilio.phoneNumber) {
       throw new ConfigurationError('Missing required Twilio credentials');
     }
+
+    if (!config.twilio.accountSid.startsWith('AC')) {
+      throw new ConfigurationError('Invalid Twilio Account SID format - should start with AC');
+    }
+
+    if (!config.twilio.phoneNumber.startsWith('+')) {
+      throw new ConfigurationError('Invalid Twilio Phone Number format - should start with +');
+    }
+
     this.client = twilio(config.twilio.accountSid, config.twilio.authToken);
     this.timeZone = config.app.timeZone;
   }
@@ -36,7 +45,14 @@ export class NotificationService {
     if (!phoneNumber) {
       throw new ValidationError('No phone number provided');
     }
-    return phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+
+    // Basic phone number format validation
+    if (!/^\+\d{10,15}$/.test(formattedPhone)) {
+      throw new ValidationError('Invalid phone number format. Must be E.164 format (+1234567890)');
+    }
+
+    return formattedPhone;
   }
 
   private async updateDeliveryStatus(
@@ -71,7 +87,7 @@ export class NotificationService {
       let deliveryChannel: 'sms' | 'whatsapp' = user.notificationPreference === 'whatsapp' ? 'whatsapp' : 'sms';
       let usingFallback = false;
 
-      // If WhatsApp is requested but not configured, fall back to SMS
+      // Consolidated WhatsApp availability check and fallback logic
       if (deliveryChannel === 'whatsapp' && !config.twilio.whatsappNumber) {
         console.log('WhatsApp number not configured, falling back to SMS');
         await this.updateDeliveryStatus(
@@ -127,14 +143,21 @@ export class NotificationService {
         fallback: usingFallback
       };
     } catch (error: any) {
-      // Handle WhatsApp-specific errors
+      // Handle WhatsApp-specific errors with fallback to SMS
       if (error.code === 63007) {
         console.log('WhatsApp message failed, falling back to SMS');
-        // Update user preference to SMS
         await storage.updateUser(user.id, { notificationPreference: 'sms' });
-        // Retry with SMS
         const smsResult = await this.sendTaskReminder(task, { ...user, notificationPreference: 'sms' }, notificationId);
         return { ...smsResult, fallback: true };
+      }
+
+      // Enhanced error handling with specific error types
+      if (error.code === 21211) {
+        throw new ValidationError('Invalid phone number format');
+      } else if (error.code === 21608) {
+        throw new ValidationError('Phone number must be verified in Twilio console');
+      } else if (error.code === 21614) {
+        throw new ConfigurationError('Invalid Twilio phone number');
       }
 
       const notificationError = NotificationError.fromTwilioError(error);
