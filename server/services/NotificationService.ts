@@ -10,6 +10,7 @@ interface DeliveryResult {
   messageSid: string;
   status: string;
   channel: 'sms' | 'whatsapp';
+  fallback?: boolean;
 }
 
 export class NotificationService {
@@ -63,6 +64,7 @@ export class NotificationService {
     try {
       const formattedPhone = this.validatePhoneNumber(user.phoneNumber);
       let deliveryChannel: 'sms' | 'whatsapp' = user.notificationPreference === 'whatsapp' ? 'whatsapp' : 'sms';
+      let usingFallback = false;
 
       // If WhatsApp is requested but not configured, fall back to SMS
       if (deliveryChannel === 'whatsapp' && !config.twilio.whatsappNumber) {
@@ -74,6 +76,7 @@ export class NotificationService {
           'WhatsApp not configured, falling back to SMS'
         );
         deliveryChannel = 'sms';
+        usingFallback = true;
         await storage.updateUser(user.id, { notificationPreference: 'sms' });
       }
 
@@ -95,7 +98,8 @@ export class NotificationService {
       console.log(`${deliveryChannel.toUpperCase()} message queued:`, {
         messageSid: message.sid,
         status: message.status,
-        channel: deliveryChannel
+        channel: deliveryChannel,
+        fallback: usingFallback
       });
 
       await this.updateDeliveryStatus(
@@ -107,7 +111,8 @@ export class NotificationService {
       return {
         messageSid: message.sid,
         status: message.status,
-        channel: deliveryChannel
+        channel: deliveryChannel,
+        fallback: usingFallback
       };
     } catch (error: any) {
       // Handle WhatsApp-specific errors
@@ -116,7 +121,8 @@ export class NotificationService {
         // Update user preference to SMS
         await storage.updateUser(user.id, { notificationPreference: 'sms' });
         // Retry with SMS
-        return this.sendTaskReminder(task, { ...user, notificationPreference: 'sms' }, notificationId);
+        const smsResult = await this.sendTaskReminder(task, { ...user, notificationPreference: 'sms' }, notificationId);
+        return { ...smsResult, fallback: true };
       }
 
       const notificationError = NotificationError.fromTwilioError(error);

@@ -185,8 +185,12 @@ export function registerRoutes(app: Express) {
         const result = await notificationService.sendTaskReminder(testTask, user, notification.id);
         return res.json({
           success: true,
-          message: `Test notification queued successfully via ${result.channel}`,
-          status: result.status
+          message: result.fallback 
+            ? `WhatsApp delivery not available, notification sent via SMS instead`
+            : `Test notification queued successfully via ${result.channel}`,
+          status: result.status,
+          channel: result.channel,
+          fallback: result.fallback
         });
       } catch (error) {
         if (error instanceof ValidationError) {
