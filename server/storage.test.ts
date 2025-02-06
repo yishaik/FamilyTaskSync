@@ -11,7 +11,7 @@ jest.doMock('./db', () => ({
 
 // Import after mocks are set up
 import { DatabaseStorage } from './storage';
-import { type User, users } from '@shared/schema';
+import { type User, type InsertUser, users } from '@shared/schema';
 
 describe('DatabaseStorage', () => {
   let storage: DatabaseStorage;
@@ -29,7 +29,7 @@ describe('DatabaseStorage', () => {
         { id: 1, name: 'Test User', color: '#000000', phoneNumber: null, notificationPreference: 'sms' },
       ];
 
-      db.returning.mockResolvedValueOnce(mockUsers);
+      db.returning.mockResolvedValue(mockUsers);
 
       const result = await storage.getUsers();
 
@@ -41,11 +41,11 @@ describe('DatabaseStorage', () => {
 
   describe('createUser', () => {
     it('should create a user and format phone number correctly', async () => {
-      const mockUser = {
+      const mockUser: InsertUser = {
         name: 'Test User',
         color: '#000000',
         phoneNumber: '1234567890',
-        notificationPreference: 'sms' as const,
+        notificationPreference: 'sms',
       };
 
       const expectedUser: User = {
@@ -54,7 +54,7 @@ describe('DatabaseStorage', () => {
         phoneNumber: '+1234567890',
       };
 
-      db.returning.mockResolvedValueOnce([expectedUser]);
+      db.returning.mockResolvedValue([expectedUser]);
 
       const result = await storage.createUser(mockUser);
 
@@ -68,11 +68,11 @@ describe('DatabaseStorage', () => {
     });
 
     it('should handle null phone number', async () => {
-      const mockUser = {
+      const mockUser: InsertUser = {
         name: 'Test User',
         color: '#000000',
         phoneNumber: null,
-        notificationPreference: 'sms' as const,
+        notificationPreference: 'sms',
       };
 
       const expectedUser: User = {
@@ -80,7 +80,7 @@ describe('DatabaseStorage', () => {
         ...mockUser,
       };
 
-      db.returning.mockResolvedValueOnce([expectedUser]);
+      db.returning.mockResolvedValue([expectedUser]);
 
       const result = await storage.createUser(mockUser);
 

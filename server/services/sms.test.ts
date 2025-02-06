@@ -9,23 +9,27 @@ interface TwilioMessage {
 
 interface TwilioClient {
   messages: {
-    create: jest.Mock<Promise<TwilioMessage>, [any]>;
+    create: jest.MockedFunction<(params: any) => Promise<TwilioMessage>>;
   };
 }
 
-// Mock twilio with proper types
+// Mock twilio
 jest.doMock('twilio', () => {
   return jest.fn(() => ({
     messages: {
-      create: jest.fn<Promise<TwilioMessage>, [any]>(),
+      create: jest.fn().mockImplementation(() => Promise.resolve({
+        sid: 'test_sid',
+        status: 'queued',
+        dateCreated: new Date()
+      }))
     },
   }));
 });
 
-// Mock storage with proper types
+// Mock storage
 jest.doMock('../storage', () => ({
   storage: {
-    updateNotificationDeliveryStatus: jest.fn<Promise<void>, [number, string, string | undefined, string | undefined]>(),
+    updateNotificationDeliveryStatus: jest.fn().mockImplementation(() => Promise.resolve()),
   },
 }));
 
@@ -88,9 +92,9 @@ describe('SMS Service', () => {
         dateCreated: new Date(),
       };
 
-      mockTwilioClient.messages.create.mockResolvedValueOnce(mockMessageResponse);
+      mockTwilioClient.messages.create.mockImplementation(() => Promise.resolve(mockMessageResponse));
 
-      await sendTaskReminder(mockTask, mockUser, 1);
+      const result = await sendTaskReminder(mockTask, mockUser, 1);
 
       expect(mockTwilioClient.messages.create).toHaveBeenCalledWith({
         body: expect.any(String),
@@ -104,6 +108,8 @@ describe('SMS Service', () => {
         'sent',
         'test_sid'
       );
+
+      expect(result).toEqual(mockMessageResponse);
     });
 
     it('should handle missing phone number', async () => {
@@ -123,7 +129,7 @@ describe('SMS Service', () => {
     it('should handle Twilio errors', async () => {
       const error = new Error('Invalid phone number') as Error & { code: number };
       error.code = 21211;
-      mockTwilioClient.messages.create.mockRejectedValueOnce(error);
+      mockTwilioClient.messages.create.mockImplementation(() => Promise.reject(error));
 
       await expect(sendTaskReminder(mockTask, mockUser, 1)).rejects.toThrow();
 

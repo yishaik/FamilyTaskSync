@@ -1,5 +1,5 @@
 // Set up mocks before imports
-import { afterEach, beforeEach, expect, jest, describe, it } from '@jest/globals';
+import { beforeEach, afterEach, expect, jest, describe, it } from '@jest/globals';
 import { createMockDb, type IMockDb } from '../db.test';
 
 const { db: mockDb, resetMocks } = createMockDb();
@@ -9,17 +9,21 @@ jest.doMock('../db', () => ({
   sql: jest.fn(),
 }));
 
-// Mock storage methods
+// Mock storage methods with proper types
 jest.doMock('../storage', () => ({
   storage: {
-    getUser: jest.fn<Promise<User | undefined>, [number]>(),
-    createNotification: jest.fn<Promise<{ id: number }>, [any]>(),
+    getUser: jest.fn().mockImplementation(() => Promise.resolve(undefined)),
+    createNotification: jest.fn().mockImplementation(() => Promise.resolve({ id: 1 })),
   },
 }));
 
-// Mock SMS sending
+// Mock SMS sending with proper type
 jest.doMock('./sms', () => ({
-  sendTaskReminder: jest.fn<Promise<TwilioMessage>, [Task, User, number]>(),
+  sendTaskReminder: jest.fn().mockImplementation(() => Promise.resolve({
+    sid: 'test_sid',
+    status: 'queued',
+    dateCreated: new Date()
+  })),
 }));
 
 // Import after mocks are set up
@@ -29,6 +33,7 @@ import { sendTaskReminder } from './sms';
 import { type Task, type User, tasks } from '@shared/schema';
 import { addMinutes } from 'date-fns';
 
+// Define the TwilioMessage type
 interface TwilioMessage {
   sid: string;
   status: string;
@@ -78,18 +83,23 @@ describe('Reminder Service', () => {
     it('should process pending reminders within the time window', async () => {
       const now = new Date();
       const reminderTime = now;
+      const mockTaskWithTime = { ...mockTask, reminderTime };
 
-      // Setup mock chain for initial tasks query
-      db.returning.mockResolvedValueOnce([{ ...mockTask, reminderTime }]);
+      // Type the mock implementations
+      db.returning.mockImplementation(() => Promise.resolve([mockTaskWithTime]));
 
-      // Setup storage and SMS mocks
-      (storage.getUser as jest.Mock).mockResolvedValueOnce(mockUser);
-      (storage.createNotification as jest.Mock).mockResolvedValueOnce({ id: 1 });
-      (sendTaskReminder as jest.Mock).mockResolvedValueOnce({
+      const mockedGetUser = storage.getUser as jest.MockedFunction<typeof storage.getUser>;
+      mockedGetUser.mockImplementation(() => Promise.resolve(mockUser));
+
+      const mockedCreateNotification = storage.createNotification as jest.MockedFunction<typeof storage.createNotification>;
+      mockedCreateNotification.mockImplementation(() => Promise.resolve({ id: 1 }));
+
+      const mockedSendTaskReminder = sendTaskReminder as jest.MockedFunction<typeof sendTaskReminder>;
+      mockedSendTaskReminder.mockImplementation(() => Promise.resolve({
         sid: 'test_sid',
         status: 'queued',
         dateCreated: new Date(),
-      });
+      }));
 
       await checkAndSendReminders();
 
@@ -104,7 +114,7 @@ describe('Reminder Service', () => {
       const reminderTime = addMinutes(now, 5); // 5 minutes in the future
 
       // Mock empty result for reminders outside window
-      db.returning.mockResolvedValueOnce([]);
+      db.returning.mockImplementation(() => Promise.resolve([]));
 
       await checkAndSendReminders();
 
@@ -115,7 +125,7 @@ describe('Reminder Service', () => {
 
     it('should handle errors gracefully', async () => {
       // Mock database error
-      db.returning.mockRejectedValueOnce(new Error('Database error'));
+      db.returning.mockImplementation(() => Promise.reject(new Error('Database error')));
 
       await expect(checkAndSendReminders()).resolves.not.toThrow();
     });
