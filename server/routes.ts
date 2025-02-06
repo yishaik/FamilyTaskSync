@@ -152,6 +152,13 @@ export function registerRoutes(app: Express) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      if (!user.phoneNumber) {
+        return res.status(400).json({
+          success: false,
+          message: "No phone number configured for this user"
+        });
+      }
+
       // Create a test task first
       const testTask = await storage.createTask({
         title: "Test Notification",
@@ -171,10 +178,35 @@ export function registerRoutes(app: Express) {
         read: false
       });
 
-      // Send test notification using the existing SMS service
-      await sendTaskReminder(testTask, user, notification.id);
+      try {
+        // Send test notification using the existing SMS service
+        const result = await sendTaskReminder(testTask, user, notification.id);
 
-      res.json({ success: true, message: "Test notification sent" });
+        if (result) {
+          return res.json({ 
+            success: true, 
+            message: `Test notification queued successfully via ${user.notificationPreference}`,
+            status: result.status
+          });
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: "Failed to send notification - no valid delivery method available"
+          });
+        }
+      } catch (error) {
+        // Check if it's a WhatsApp configuration error
+        const err = error as Error;
+        if (err.message.includes('WhatsApp not configured')) {
+          return res.json({
+            success: true,
+            message: "WhatsApp not available, notification sent via SMS instead",
+            fallback: true
+          });
+        }
+
+        throw error;
+      }
     } catch (error) {
       console.error('Error sending test notification:', error);
       res.status(500).json({

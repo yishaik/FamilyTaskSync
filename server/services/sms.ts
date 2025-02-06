@@ -2,7 +2,7 @@ import twilio from 'twilio';
 import { type Task, type User } from '@shared/schema';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { storage } from '../storage'; // Fixed import path
+import { storage } from '../storage';
 
 const timeZone = 'Asia/Jerusalem';
 
@@ -61,6 +61,34 @@ export async function sendTaskReminder(task: Task, user: User, notificationId: n
     // Format the 'to' number based on notification preference
     const formattedPhone = user.phoneNumber.startsWith('+') ? user.phoneNumber : `+${user.phoneNumber}`;
 
+    // For WhatsApp, first check if the channel is available
+    if (user.notificationPreference === 'whatsapp') {
+      try {
+        // Try to fetch WhatsApp channel info
+        const whatsappChannel = await client.conversations.v1.services.list({ 
+          friendlyName: 'WhatsApp' 
+        });
+
+        if (!whatsappChannel || whatsappChannel.length === 0) {
+          console.log('WhatsApp channel not configured, falling back to SMS');
+          // Update user's preference to SMS
+          await storage.updateUser(user.id, { notificationPreference: 'sms' });
+          // Update notification with fallback info
+          await storage.updateNotificationDeliveryStatus(
+            notificationId,
+            "pending",
+            undefined,
+            "WhatsApp not configured, falling back to SMS"
+          );
+          // Set to SMS for this delivery
+          user.notificationPreference = 'sms';
+        }
+      } catch (error) {
+        console.log('Error checking WhatsApp availability, falling back to SMS:', error);
+        user.notificationPreference = 'sms';
+      }
+    }
+
     const to = user.notificationPreference === 'whatsapp' 
       ? `whatsapp:${formattedPhone}`
       : formattedPhone;
@@ -77,14 +105,21 @@ export async function sendTaskReminder(task: Task, user: User, notificationId: n
         statusCallback: `${REPLIT_URL}/api/notifications/webhook`,
       });
 
-      console.log(`${user.notificationPreference.toUpperCase()} message sent successfully:`, {
+      console.log(`${user.notificationPreference.toUpperCase()} message queued successfully:`, {
         userName: user.name,
         messageSid: message.sid,
         status: message.status,
         dateCreated: message.dateCreated
       });
 
-      await storage.updateNotificationDeliveryStatus(notificationId, "sent", message.sid);
+      // For SMS, "queued" is a successful initial state
+      if (message.status === 'queued') {
+        await storage.updateNotificationDeliveryStatus(notificationId, "sent", message.sid);
+        return message;
+      }
+
+      // For other statuses, update accordingly
+      await storage.updateNotificationDeliveryStatus(notificationId, message.status, message.sid);
       return message;
     } catch (error) {
       const twilioError = error as TwilioError;
@@ -115,6 +150,12 @@ export async function sendTaskReminder(task: Task, user: User, notificationId: n
         undefined, 
         `${twilioError.code}: ${twilioError.message}`
       );
+
+      // Don't throw if it's a WhatsApp error, we'll fall back to SMS
+      if (user.notificationPreference === 'whatsapp' && twilioError.code === 63007) {
+        console.log('Falling back to SMS due to WhatsApp error');
+        return await sendTaskReminder({ ...task }, { ...user, notificationPreference: 'sms' }, notificationId);
+      }
 
       throw new Error(`Failed to send ${user.notificationPreference} reminder: ${twilioError.message}`);
     }
