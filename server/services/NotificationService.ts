@@ -4,7 +4,7 @@ import { toZonedTime } from 'date-fns-tz';
 import { type Task, type User, type Notification } from '@shared/schema';
 import { config } from '../config';
 import { storage } from '../storage';
-import { ConfigurationError, DeliveryError, NotificationError } from './errors';
+import { ConfigurationError, DeliveryError, NotificationError, ValidationError } from './errors';
 
 interface DeliveryResult {
   messageSid: string;
@@ -28,16 +28,11 @@ export class NotificationService {
     }. ${task.description || ''}`;
   }
 
-  private async checkWhatsAppAvailability(): Promise<boolean> {
-    try {
-      const whatsappChannel = await this.client.conversations.v1.services.list({
-        friendlyName: 'WhatsApp'
-      });
-      return whatsappChannel.length > 0;
-    } catch (error) {
-      console.warn('Error checking WhatsApp availability:', error);
-      return false;
+  private validatePhoneNumber(phoneNumber: string | null): string {
+    if (!phoneNumber) {
+      throw new ValidationError('No phone number provided');
     }
+    return phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
   }
 
   private async updateDeliveryStatus(
@@ -54,13 +49,6 @@ export class NotificationService {
     );
   }
 
-  private validatePhoneNumber(phoneNumber: string | null): string {
-    if (!phoneNumber) {
-      throw new ValidationError('No phone number provided');
-    }
-    return phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
-  }
-
   async sendTaskReminder(
     task: Task,
     user: User,
@@ -74,33 +62,37 @@ export class NotificationService {
 
     try {
       const formattedPhone = this.validatePhoneNumber(user.phoneNumber);
-      let deliveryChannel: 'sms' | 'whatsapp' = 'sms';
+      let deliveryChannel: 'sms' | 'whatsapp' = user.notificationPreference === 'whatsapp' ? 'whatsapp' : 'sms';
 
-      // Check WhatsApp availability if preferred
-      if (user.notificationPreference === 'whatsapp') {
-        const whatsAppAvailable = await this.checkWhatsAppAvailability();
-        if (!whatsAppAvailable) {
-          console.log('WhatsApp unavailable, falling back to SMS');
-          await this.updateDeliveryStatus(
-            notificationId,
-            'pending',
-            undefined,
-            'WhatsApp not configured, falling back to SMS'
-          );
-          deliveryChannel = 'sms';
-        } else {
-          deliveryChannel = 'whatsapp';
-        }
+      // If WhatsApp is requested but not configured, fall back to SMS
+      if (deliveryChannel === 'whatsapp' && !config.twilio.whatsappNumber) {
+        console.log('WhatsApp number not configured, falling back to SMS');
+        await this.updateDeliveryStatus(
+          notificationId,
+          'pending',
+          undefined,
+          'WhatsApp not configured, falling back to SMS'
+        );
+        deliveryChannel = 'sms';
+        await storage.updateUser(user.id, { notificationPreference: 'sms' });
       }
+
+      const from = deliveryChannel === 'whatsapp' 
+        ? `whatsapp:${config.twilio.whatsappNumber}`
+        : config.twilio.phoneNumber;
+
+      const to = deliveryChannel === 'whatsapp'
+        ? `whatsapp:${formattedPhone}`
+        : formattedPhone;
 
       const message = await this.client.messages.create({
         body: this.formatMessage(task, user),
-        to: deliveryChannel === 'whatsapp' ? `whatsapp:${formattedPhone}` : formattedPhone,
-        from: deliveryChannel === 'whatsapp' ? `whatsapp:${config.twilio.phoneNumber}` : config.twilio.phoneNumber,
+        to,
+        from,
         statusCallback: `${config.app.baseUrl}/api/notifications/webhook`,
       });
 
-      console.log('Message queued:', {
+      console.log(`${deliveryChannel.toUpperCase()} message queued:`, {
         messageSid: message.sid,
         status: message.status,
         channel: deliveryChannel
@@ -118,13 +110,13 @@ export class NotificationService {
         channel: deliveryChannel
       };
     } catch (error: any) {
-      if (error.code === 63007 && user.notificationPreference === 'whatsapp') {
-        console.log('WhatsApp error, retrying with SMS');
-        return this.sendTaskReminder(
-          task,
-          { ...user, notificationPreference: 'sms' },
-          notificationId
-        );
+      // Handle WhatsApp-specific errors
+      if (error.code === 63007) {
+        console.log('WhatsApp message failed, falling back to SMS');
+        // Update user preference to SMS
+        await storage.updateUser(user.id, { notificationPreference: 'sms' });
+        // Retry with SMS
+        return this.sendTaskReminder(task, { ...user, notificationPreference: 'sms' }, notificationId);
       }
 
       const notificationError = NotificationError.fromTwilioError(error);

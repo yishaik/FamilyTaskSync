@@ -20,6 +20,9 @@ export function registerRoutes(app: Express) {
   app.patch("/api/users/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
       const updates = req.body;
 
       // Validate phone number format if it's being updated
@@ -47,25 +50,13 @@ export function registerRoutes(app: Express) {
   app.post("/api/tasks", async (req, res) => {
     try {
       console.log('Creating new task with data:', req.body);
-
       const parsed = insertTaskSchema.parse(req.body);
-
-      // Convert reminder time to Date object if present
-      if (parsed.reminderTime) {
-        console.log('Processing reminder time:', {
-          original: parsed.reminderTime,
-          parsed: new Date(parsed.reminderTime)
-        });
-      }
-
       const task = await storage.createTask(parsed);
-
       console.log('Task created successfully:', {
         taskId: task.id,
         reminderTime: task.reminderTime,
         assignedTo: task.assignedTo
       });
-
       res.json(task);
     } catch (error) {
       console.error('Error creating task:', error);
@@ -78,15 +69,29 @@ export function registerRoutes(app: Express) {
   });
 
   app.patch("/api/tasks/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const updates = req.body;
-    const task = await storage.updateTask(id, updates);
-    res.json(task);
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      const updates = req.body;
+      const task = await storage.updateTask(id, updates);
+      res.json(task);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: 'Failed to update task' });
+      }
+    }
   });
 
   app.delete("/api/tasks/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
       await storage.deleteTask(id);
       res.json({ success: true });
     } catch (error) {
@@ -97,33 +102,62 @@ export function registerRoutes(app: Express) {
 
   // Notifications
   app.get("/api/notifications/:userId", async (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const notifications = await storage.getNotifications(userId);
-    res.json(notifications);
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      const notifications = await storage.getNotifications(userId);
+      res.json(notifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: 'Failed to fetch notifications' });
+    }
   });
 
   app.post("/api/notifications", async (req, res) => {
-    const parsed = insertNotificationSchema.parse(req.body);
-    const notification = await storage.createNotification(parsed);
-    res.json(notification);
+    try {
+      const parsed = insertNotificationSchema.parse(req.body);
+      const notification = await storage.createNotification(parsed);
+      res.json(notification);
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      res.status(400).json({ message: 'Failed to create notification' });
+    }
   });
 
   app.post("/api/notifications/:id/read", async (req, res) => {
-    const id = parseInt(req.params.id);
-    await storage.markNotificationAsRead(id);
-    res.json({ success: true });
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid notification ID" });
+      }
+      await storage.markNotificationAsRead(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ message: 'Failed to mark notification as read' });
+    }
   });
 
   app.get("/api/notifications/log", async (_req, res) => {
-    const notifications = await storage.getAllNotificationsWithStatus();
-    res.json(notifications);
+    try {
+      const notifications = await storage.getAllNotificationsWithStatus();
+      res.json(notifications);
+    } catch (error) {
+      console.error('Error fetching notification logs:', error);
+      res.status(500).json({ message: 'Failed to fetch notification logs' });
+    }
   });
 
   app.post("/api/notifications/test/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      const user = await storage.getUser(userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
 
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -165,7 +199,7 @@ export function registerRoutes(app: Express) {
       }
     } catch (error) {
       console.error('Error sending test notification:', error);
-      const status = error instanceof NotificationError ? error.status : 500;
+      const status = error instanceof NotificationError ? error.status || 500 : 500;
       res.status(status).json({
         success: false,
         message: error instanceof Error ? error.message : "Unknown error occurred"
