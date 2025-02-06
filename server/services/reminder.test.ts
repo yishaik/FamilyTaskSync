@@ -2,14 +2,19 @@ import { checkAndSendReminders } from './reminder';
 import { db } from '../db';
 import { storage } from '../storage';
 import { sendTaskReminder } from './sms';
-import { type Task, type User } from '../../shared/schema';
+import { type Task, type User } from '@shared/schema';
 import { addMinutes, subMinutes } from 'date-fns';
+import { expect, jest, describe, it } from '@jest/globals';
 
 // Mock dependencies
 jest.mock('../db', () => ({
   db: {
-    select: jest.fn(),
-    update: jest.fn(),
+    select: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    set: jest.fn().mockReturnThis(),
+    returning: jest.fn(),
   },
 }));
 
@@ -25,13 +30,26 @@ jest.mock('./sms', () => ({
 }));
 
 describe('Reminder Service', () => {
+  let mockCheckInterval: NodeJS.Timeout;
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+
+    // Reset all mock implementations
+    (db.select as jest.Mock).mockReturnThis();
+    (db.from as jest.Mock).mockReturnThis();
+    (db.where as jest.Mock).mockReturnThis();
+    (db.update as jest.Mock).mockReturnThis();
+    (db.set as jest.Mock).mockReturnThis();
   });
 
   afterEach(() => {
+    jest.clearAllTimers();
     jest.useRealTimers();
+    if (mockCheckInterval) {
+      clearInterval(mockCheckInterval);
+    }
   });
 
   const mockTask: Task = {
@@ -59,11 +77,8 @@ describe('Reminder Service', () => {
       const now = new Date();
       const reminderTime = now;
 
-      // Mock db.select to return a task with reminder due
-      (db.select as jest.Mock).mockImplementation(() => ({
-        from: jest.fn().mockReturnThis(),
-        where: jest.fn().mockResolvedValue([{ ...mockTask, reminderTime }]),
-      }));
+      // Mock db.where to return tasks
+      (db.where as jest.Mock).mockResolvedValueOnce([{ ...mockTask, reminderTime }]);
 
       // Mock storage.getUser to return a user
       (storage.getUser as jest.Mock).mockResolvedValue(mockUser);
@@ -74,12 +89,8 @@ describe('Reminder Service', () => {
       // Mock sendTaskReminder
       (sendTaskReminder as jest.Mock).mockResolvedValue({ status: 'queued' });
 
-      // Mock db.update for marking reminder as sent
-      (db.update as jest.Mock).mockImplementation(() => ({
-        set: jest.fn().mockReturnThis(),
-        where: jest.fn().mockResolvedValue([mockTask]),
-        returning: jest.fn().mockResolvedValue([mockTask]),
-      }));
+      // Mock db.returning for marking reminder as sent
+      (db.returning as jest.Mock).mockResolvedValueOnce([mockTask]);
 
       await checkAndSendReminders();
 
@@ -93,11 +104,8 @@ describe('Reminder Service', () => {
       const now = new Date();
       const reminderTime = addMinutes(now, 5); // 5 minutes in the future
 
-      // Mock db.select to return no tasks
-      (db.select as jest.Mock).mockImplementation(() => ({
-        from: jest.fn().mockReturnThis(),
-        where: jest.fn().mockResolvedValue([]),
-      }));
+      // Mock db.where to return no tasks
+      (db.where as jest.Mock).mockResolvedValueOnce([]);
 
       await checkAndSendReminders();
 
@@ -107,10 +115,8 @@ describe('Reminder Service', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      // Mock db.select to throw an error
-      (db.select as jest.Mock).mockImplementation(() => {
-        throw new Error('Database error');
-      });
+      // Mock db.where to throw an error
+      (db.where as jest.Mock).mockRejectedValueOnce(new Error('Database error'));
 
       await expect(checkAndSendReminders()).resolves.not.toThrow();
     });

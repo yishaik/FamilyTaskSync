@@ -1,11 +1,25 @@
 import { storage } from '../storage';
 import { sendTaskReminder } from './sms';
 import twilio from 'twilio';
-import { type Task, type User } from '../../shared/schema';
+import { type Task, type User } from '@shared/schema';
+import { expect, jest, describe, it } from '@jest/globals';
+
+interface TwilioInterface {
+  messages: {
+    create: jest.Mock;
+  };
+  conversations: {
+    v1: {
+      services: {
+        list: jest.Mock;
+      };
+    };
+  };
+}
 
 // Mock twilio
 jest.mock('twilio', () => {
-  return jest.fn(() => ({
+  const mockTwilio = jest.fn(() => ({
     messages: {
       create: jest.fn(),
     },
@@ -17,6 +31,7 @@ jest.mock('twilio', () => {
       },
     },
   }));
+  return mockTwilio;
 });
 
 // Mock storage
@@ -28,17 +43,27 @@ jest.mock('../storage', () => ({
 }));
 
 describe('SMS Service', () => {
-  let mockTwilioClient: jest.Mocked<any>;
+  let mockTwilioClient: TwilioInterface;
+  let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Save original env vars
+    originalEnv = { ...process.env };
+
+    // Set test env vars
     process.env.TWILIO_ACCOUNT_SID = 'AC_test';
     process.env.TWILIO_AUTH_TOKEN = 'test_token';
     process.env.TWILIO_PHONE_NUMBER = '+1234567890';
     process.env.REPL_SLUG = 'test';
     process.env.REPL_OWNER = 'test';
 
-    mockTwilioClient = (twilio as jest.Mock)();
+    mockTwilioClient = (twilio as unknown as jest.Mock)() as TwilioInterface;
+  });
+
+  afterEach(() => {
+    // Restore original env vars
+    process.env = originalEnv;
   });
 
   const mockTask: Task = {
@@ -63,11 +88,13 @@ describe('SMS Service', () => {
 
   describe('sendTaskReminder', () => {
     it('should successfully send SMS notification', async () => {
-      mockTwilioClient.messages.create.mockResolvedValueOnce({
+      const mockMessageResponse = {
         sid: 'test_sid',
         status: 'queued',
         dateCreated: new Date(),
-      });
+      };
+
+      mockTwilioClient.messages.create.mockResolvedValueOnce(mockMessageResponse);
 
       await sendTaskReminder(mockTask, mockUser, 1);
 
@@ -75,7 +102,7 @@ describe('SMS Service', () => {
         body: expect.any(String),
         to: mockUser.phoneNumber,
         from: process.env.TWILIO_PHONE_NUMBER,
-        statusCallback: expect.any(String),
+        statusCallback: expect.stringContaining('/api/notifications/webhook'),
       });
 
       expect(storage.updateNotificationDeliveryStatus).toHaveBeenCalledWith(
@@ -92,26 +119,24 @@ describe('SMS Service', () => {
       mockTwilioClient.conversations.v1.services.list.mockResolvedValueOnce([]);
 
       // Mock successful SMS fallback
-      mockTwilioClient.messages.create.mockResolvedValueOnce({
+      const mockMessageResponse = {
         sid: 'test_sid',
         status: 'queued',
         dateCreated: new Date(),
-      });
+      };
+      mockTwilioClient.messages.create.mockResolvedValueOnce(mockMessageResponse);
 
       await sendTaskReminder(mockTask, whatsappUser, 1);
 
-      // Should update user preference to SMS
-      expect(storage.updateUser).toHaveBeenCalledWith(
-        whatsappUser.id,
-        { notificationPreference: 'sms' }
-      );
+      expect(storage.updateUser).toHaveBeenCalledWith(whatsappUser.id, {
+        notificationPreference: 'sms',
+      });
 
-      // Should send SMS instead
       expect(mockTwilioClient.messages.create).toHaveBeenCalledWith({
         body: expect.any(String),
         to: whatsappUser.phoneNumber,
         from: process.env.TWILIO_PHONE_NUMBER,
-        statusCallback: expect.any(String),
+        statusCallback: expect.stringContaining('/api/notifications/webhook'),
       });
     });
 
