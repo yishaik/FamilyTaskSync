@@ -10,6 +10,7 @@ const timeZone = 'Asia/Jerusalem';
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+const REPLIT_URL = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
 
 if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
   console.error('Missing required Twilio credentials');
@@ -50,7 +51,8 @@ export async function sendTaskReminder(task: Task, user: User, notificationId: n
       notificationType: user.notificationPreference,
       taskTitle: task.title,
       taskDueDate: task.dueDate,
-      twilioNumber: TWILIO_PHONE_NUMBER
+      twilioNumber: TWILIO_PHONE_NUMBER,
+      webhookUrl: `${REPLIT_URL}/api/notifications/webhook`
     });
 
     const zonedDueDate = task.dueDate ? toZonedTime(task.dueDate, timeZone) : null;
@@ -72,7 +74,7 @@ export async function sendTaskReminder(task: Task, user: User, notificationId: n
         body: messageBody,
         to,
         from,
-        statusCallback: `${process.env.PUBLIC_URL}/api/notifications/webhook`,
+        statusCallback: `${REPLIT_URL}/api/notifications/webhook`,
       });
 
       console.log(`${user.notificationPreference.toUpperCase()} message sent successfully:`, {
