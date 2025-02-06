@@ -186,8 +186,8 @@ export function registerRoutes(app: Express) {
         return res.json({
           success: true,
           message: result.fallback 
-            ? `WhatsApp delivery not available, notification sent via SMS instead`
-            : `Test notification queued successfully via ${result.channel}`,
+            ? `Test notification sent successfully via SMS (WhatsApp unavailable)`
+            : `Test notification sent successfully via ${result.channel}`,
           status: result.status,
           channel: result.channel,
           fallback: result.fallback
