@@ -1,6 +1,5 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
-import { sql } from 'drizzle-orm';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
@@ -12,6 +11,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Export the raw pool for tests to mock
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
-export { sql };
+
+// Create a type for the database instance that includes all the drizzle methods
+export type DrizzleDatabase = ReturnType<typeof drizzle>;
+
+// Create and export the database instance
+export const db = drizzle(pool, { schema }) as DrizzleDatabase & { $client: Pool };
+
+// Re-export the sql helper
+export { sql } from 'drizzle-orm';

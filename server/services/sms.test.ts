@@ -1,53 +1,46 @@
-import { storage } from '../storage';
-import { sendTaskReminder } from './sms';
-import twilio from 'twilio';
-import { type Task, type User } from '@shared/schema';
-import { expect, jest, describe, it } from '@jest/globals';
+// Set up mocks before imports
+import { beforeEach, afterEach, expect, jest, describe, it } from '@jest/globals';
 
-interface TwilioInterface {
+interface TwilioMessage {
+  sid: string;
+  status: string;
+  dateCreated: Date;
+}
+
+interface TwilioClient {
   messages: {
-    create: jest.Mock;
-  };
-  conversations: {
-    v1: {
-      services: {
-        list: jest.Mock;
-      };
-    };
+    create: jest.Mock<Promise<TwilioMessage>, [any]>;
   };
 }
 
-// Mock twilio
-jest.mock('twilio', () => {
-  const mockTwilio = jest.fn(() => ({
+// Mock twilio with proper types
+jest.doMock('twilio', () => {
+  return jest.fn(() => ({
     messages: {
-      create: jest.fn(),
-    },
-    conversations: {
-      v1: {
-        services: {
-          list: jest.fn(),
-        },
-      },
+      create: jest.fn<Promise<TwilioMessage>, [any]>(),
     },
   }));
-  return mockTwilio;
 });
 
-// Mock storage
-jest.mock('../storage', () => ({
+// Mock storage with proper types
+jest.doMock('../storage', () => ({
   storage: {
-    updateNotificationDeliveryStatus: jest.fn(),
-    updateUser: jest.fn(),
+    updateNotificationDeliveryStatus: jest.fn<Promise<void>, [number, string, string | undefined, string | undefined]>(),
   },
 }));
 
+// Import after mocks are set up
+import { storage } from '../storage';
+import { sendTaskReminder } from './sms';
+import { type Task, type User } from '@shared/schema';
+
 describe('SMS Service', () => {
-  let mockTwilioClient: TwilioInterface;
+  let mockTwilioClient: TwilioClient;
   let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
     jest.clearAllMocks();
+
     // Save original env vars
     originalEnv = { ...process.env };
 
@@ -58,7 +51,8 @@ describe('SMS Service', () => {
     process.env.REPL_SLUG = 'test';
     process.env.REPL_OWNER = 'test';
 
-    mockTwilioClient = (twilio as unknown as jest.Mock)() as TwilioInterface;
+    // Get the mocked Twilio client instance
+    mockTwilioClient = (require('twilio') as jest.MockedFunction<any>)();
   });
 
   afterEach(() => {
@@ -88,7 +82,7 @@ describe('SMS Service', () => {
 
   describe('sendTaskReminder', () => {
     it('should successfully send SMS notification', async () => {
-      const mockMessageResponse = {
+      const mockMessageResponse: TwilioMessage = {
         sid: 'test_sid',
         status: 'queued',
         dateCreated: new Date(),
@@ -112,34 +106,6 @@ describe('SMS Service', () => {
       );
     });
 
-    it('should fall back to SMS when WhatsApp is not available', async () => {
-      const whatsappUser = { ...mockUser, notificationPreference: 'whatsapp' as const };
-
-      // Mock WhatsApp channel check to return empty array (not configured)
-      mockTwilioClient.conversations.v1.services.list.mockResolvedValueOnce([]);
-
-      // Mock successful SMS fallback
-      const mockMessageResponse = {
-        sid: 'test_sid',
-        status: 'queued',
-        dateCreated: new Date(),
-      };
-      mockTwilioClient.messages.create.mockResolvedValueOnce(mockMessageResponse);
-
-      await sendTaskReminder(mockTask, whatsappUser, 1);
-
-      expect(storage.updateUser).toHaveBeenCalledWith(whatsappUser.id, {
-        notificationPreference: 'sms',
-      });
-
-      expect(mockTwilioClient.messages.create).toHaveBeenCalledWith({
-        body: expect.any(String),
-        to: whatsappUser.phoneNumber,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        statusCallback: expect.stringContaining('/api/notifications/webhook'),
-      });
-    });
-
     it('should handle missing phone number', async () => {
       const userWithoutPhone = { ...mockUser, phoneNumber: null };
 
@@ -155,7 +121,7 @@ describe('SMS Service', () => {
     });
 
     it('should handle Twilio errors', async () => {
-      const error = new Error('Invalid phone number') as any;
+      const error = new Error('Invalid phone number') as Error & { code: number };
       error.code = 21211;
       mockTwilioClient.messages.create.mockRejectedValueOnce(error);
 

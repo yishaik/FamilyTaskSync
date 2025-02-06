@@ -1,48 +1,26 @@
-import { DatabaseStorage } from './storage';
-import { db } from './db';
-import { type User } from '@shared/schema';
-import { expect, jest, describe, it } from '@jest/globals';
+// Set up mocks before imports
+import { beforeEach, expect, jest, describe, it } from '@jest/globals';
+import { createMockDb, type IMockDb } from './db.test';
 
-// Mock the database
-jest.mock('./db', () => ({
-  db: {
-    select: jest.fn().mockReturnThis(),
-    from: jest.fn().mockReturnThis(),
-    where: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    set: jest.fn().mockReturnThis(),
-    returning: jest.fn(),
-    values: jest.fn().mockReturnThis(),
-  },
+const { db: mockDb, resetMocks } = createMockDb();
+
+jest.doMock('./db', () => ({
+  db: mockDb,
+  sql: jest.fn(),
 }));
 
-// Mock initializeDefaultUsers function
-jest.mock('./storage', () => {
-  const actualStorage = jest.requireActual('./storage');
-  return {
-    ...actualStorage,
-    initializeDefaultUsers: jest.fn(),
-  };
-});
+// Import after mocks are set up
+import { DatabaseStorage } from './storage';
+import { type User, users } from '@shared/schema';
 
 describe('DatabaseStorage', () => {
   let storage: DatabaseStorage;
+  let db: IMockDb;
 
   beforeEach(() => {
+    db = mockDb;
     storage = new DatabaseStorage();
-    jest.clearAllMocks();
-
-    // Reset all mock implementations
-    (db.select as jest.Mock).mockReturnThis();
-    (db.from as jest.Mock).mockReturnThis();
-    (db.where as jest.Mock).mockReturnThis();
-    (db.insert as jest.Mock).mockReturnThis();
-    (db.update as jest.Mock).mockReturnThis();
-    (db.delete as jest.Mock).mockReturnThis();
-    (db.set as jest.Mock).mockReturnThis();
-    (db.values as jest.Mock).mockReturnThis();
+    resetMocks();
   });
 
   describe('getUsers', () => {
@@ -51,12 +29,13 @@ describe('DatabaseStorage', () => {
         { id: 1, name: 'Test User', color: '#000000', phoneNumber: null, notificationPreference: 'sms' },
       ];
 
-      (db.from as jest.Mock).mockResolvedValueOnce(mockUsers);
+      db.returning.mockResolvedValueOnce(mockUsers);
 
       const result = await storage.getUsers();
+
       expect(result).toEqual(mockUsers);
       expect(db.select).toHaveBeenCalled();
-      expect(db.from).toHaveBeenCalled();
+      expect(db.from).toHaveBeenCalledWith(users);
     });
   });
 
@@ -75,12 +54,13 @@ describe('DatabaseStorage', () => {
         phoneNumber: '+1234567890',
       };
 
-      (db.returning as jest.Mock).mockResolvedValueOnce([expectedUser]);
+      db.returning.mockResolvedValueOnce([expectedUser]);
 
       const result = await storage.createUser(mockUser);
+
       expect(result).toEqual(expectedUser);
       expect(result.phoneNumber).toBe('+1234567890');
-      expect(db.insert).toHaveBeenCalled();
+      expect(db.insert).toHaveBeenCalledWith(users);
       expect(db.values).toHaveBeenCalledWith({
         ...mockUser,
         phoneNumber: '+1234567890',
@@ -100,12 +80,13 @@ describe('DatabaseStorage', () => {
         ...mockUser,
       };
 
-      (db.returning as jest.Mock).mockResolvedValueOnce([expectedUser]);
+      db.returning.mockResolvedValueOnce([expectedUser]);
 
       const result = await storage.createUser(mockUser);
+
       expect(result).toEqual(expectedUser);
       expect(result.phoneNumber).toBeNull();
-      expect(db.insert).toHaveBeenCalled();
+      expect(db.insert).toHaveBeenCalledWith(users);
       expect(db.values).toHaveBeenCalledWith(mockUser);
     });
   });
