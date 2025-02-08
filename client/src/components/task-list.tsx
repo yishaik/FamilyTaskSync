@@ -70,7 +70,7 @@ export function TaskList({ currentUser }: TaskListProps) {
   });
 
   // Filter and organize tasks
-  const organizedTasks = tasks.reduce((acc: Task[], task) => {
+  const organizedTasks = tasks.reduce((acc: Array<Task & { nextOccurrence?: Task }>, task) => {
     // Only include tasks for current user if specified
     if (currentUser && task.assignedTo !== currentUser.id) {
       return acc;
@@ -78,20 +78,19 @@ export function TaskList({ currentUser }: TaskListProps) {
 
     // For non-recurring tasks or parent recurring tasks, add them directly
     if (!task.parentTaskId) {
-      acc.push(task);
-      return acc;
-    }
+      // If it's a recurring task, find its next occurrence
+      if (task.isRecurring) {
+        const futureInstances = tasks
+          .filter(t => t.parentTaskId === task.id && t.dueDate && new Date(t.dueDate) >= new Date())
+          .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
 
-    // For recurring instances, only include the next occurrence
-    const parentTask = tasks.find(t => t.id === task.parentTaskId);
-    if (parentTask && !acc.some(t => t.parentTaskId === task.parentTaskId)) {
-      // Find the next occurrence that hasn't passed
-      const futureInstances = tasks
-        .filter(t => t.parentTaskId === parentTask.id && t.dueDate && new Date(t.dueDate) >= new Date())
-        .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
-
-      if (futureInstances.length > 0) {
-        acc.push(futureInstances[0]);
+        if (futureInstances.length > 0) {
+          acc.push({ ...task, nextOccurrence: futureInstances[0] });
+        } else {
+          acc.push(task);
+        }
+      } else {
+        acc.push(task);
       }
     }
 
@@ -133,97 +132,112 @@ export function TaskList({ currentUser }: TaskListProps) {
     return null;
   };
 
+  const renderTaskCard = (task: Task, isNextOccurrence = false) => {
+    const status = getTaskStatus(task);
+    const assignedUser = getAssignedUser(task.assignedTo);
+    const zonedDueDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
+    const zonedReminderTime = task.reminderTime ? toZonedTime(new Date(task.reminderTime), timeZone) : null;
+
+    return (
+      <Card 
+        key={task.id} 
+        className={cn(
+          "p-4 transition-colors",
+          task.completed ? "bg-gray-50" : "hover:bg-primary/5",
+          isNextOccurrence && "ml-6 border-l-4 border-l-blue-500"
+        )}
+      >
+        <div className="flex items-start gap-4">
+          <Checkbox
+            checked={task.completed}
+            onCheckedChange={() => toggleComplete(task)}
+          />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                {task.title}
+              </h3>
+              {task.isRecurring && !isNextOccurrence && (
+                <RepeatIcon className="h-4 w-4 text-blue-500" />
+              )}
+              {assignedUser && (
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback style={{ backgroundColor: assignedUser.color, color: 'white' }}>
+                    {assignedUser.name[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+            {task.description && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {task.description}
+              </p>
+            )}
+            <div className="flex gap-2 mt-2 flex-wrap">
+              <Badge variant="outline" className={priorityColors[task.priority as keyof typeof priorityColors]}>
+                {t(`tasks.priority.${task.priority}`)}
+              </Badge>
+
+              {status && (
+                <Badge variant="outline" className={status.color}>
+                  {status.text}
+                </Badge>
+              )}
+
+              {task.isRecurring && task.recurrencePattern && !isNextOccurrence && (
+                <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-800">
+                  <RepeatIcon className="h-3 w-3" />
+                  {t(`tasks.recurrencePattern.${task.recurrencePattern}`)}
+                </Badge>
+              )}
+
+              {zonedDueDate && (
+                <Badge variant="outline" className="flex items-center gap-1 ltr-text">
+                  <Calendar className="h-3 w-3" />
+                  Due {formatTz(zonedDueDate, 'MMM d', { timeZone })}
+                </Badge>
+              )}
+
+              {zonedReminderTime && (
+                <Badge variant="outline" className="flex items-center gap-1 ltr-text">
+                  <Bell className="h-3 w-3" />
+                  Reminder: {formatTz(zonedReminderTime, 'MMM d, h:mm a', { timeZone })}
+                </Badge>
+              )}
+
+              {!assignedUser && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <UserIcon className="h-3 w-3" />
+                  {t('tasks.status.unassigned')}
+                </Badge>
+              )}
+            </div>
+          </div>
+          {!isNextOccurrence && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => deleteTask(task.id)}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-4">
-      {organizedTasks.map(task => {
-        const status = getTaskStatus(task);
-        const assignedUser = getAssignedUser(task.assignedTo);
-        const zonedDueDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
-        const zonedReminderTime = task.reminderTime ? toZonedTime(new Date(task.reminderTime), timeZone) : null;
-
-        return (
-          <Card key={task.id} className={cn(
-            "p-4 transition-colors",
-            task.completed ? "bg-gray-50" : "hover:bg-primary/5"
-          )}>
-            <div className="flex items-start gap-4">
-              <Checkbox
-                checked={task.completed}
-                onCheckedChange={() => toggleComplete(task)}
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                    {task.title}
-                  </h3>
-                  {task.isRecurring && (
-                    <RepeatIcon className="h-4 w-4 text-blue-500" />
-                  )}
-                  {assignedUser && (
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback style={{ backgroundColor: assignedUser.color, color: 'white' }}>
-                        {assignedUser.name[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-                {task.description && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {task.description}
-                  </p>
-                )}
-                <div className="flex gap-2 mt-2 flex-wrap">
-                  <Badge variant="outline" className={priorityColors[task.priority as keyof typeof priorityColors]}>
-                    {t(`tasks.priority.${task.priority}`)}
-                  </Badge>
-
-                  {status && (
-                    <Badge variant="outline" className={status.color}>
-                      {status.text}
-                    </Badge>
-                  )}
-
-                  {task.isRecurring && task.recurrencePattern && (
-                    <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-800">
-                      <RepeatIcon className="h-3 w-3" />
-                      {t(`tasks.recurrencePattern.${task.recurrencePattern}`)}
-                    </Badge>
-                  )}
-
-                  {zonedDueDate && (
-                    <Badge variant="outline" className="flex items-center gap-1 ltr-text">
-                      <Calendar className="h-3 w-3" />
-                      Due {formatTz(zonedDueDate, 'MMM d', { timeZone })}
-                    </Badge>
-                  )}
-
-                  {zonedReminderTime && (
-                    <Badge variant="outline" className="flex items-center gap-1 ltr-text">
-                      <Bell className="h-3 w-3" />
-                      Reminder: {formatTz(zonedReminderTime, 'MMM d, h:mm a', { timeZone })}
-                    </Badge>
-                  )}
-
-                  {!assignedUser && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      <UserIcon className="h-3 w-3" />
-                      {t('tasks.status.unassigned')}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => deleteTask(task.id)}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </Card>
-        );
-      })}
+      {organizedTasks.map(task => (
+        <div key={task.id} className="space-y-2">
+          {renderTaskCard(task)}
+          {'nextOccurrence' in task && task.nextOccurrence && (
+            renderTaskCard(task.nextOccurrence, true)
+          )}
+        </div>
+      ))}
 
       {(!organizedTasks || organizedTasks.length === 0) && (
         <Card className="p-8 flex flex-col items-center text-center text-muted-foreground">
