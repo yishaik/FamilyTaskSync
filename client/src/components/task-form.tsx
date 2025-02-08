@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, Clock, Bell } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toZonedTime } from 'date-fns-tz';
-import {Checkbox} from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TaskFormProps {
   currentUser: User | null;
@@ -20,7 +20,7 @@ interface TaskFormProps {
 
 export function TaskForm({ currentUser }: TaskFormProps) {
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: users = [] } = useQuery<User[]>({ 
     queryKey: ["/api/users"]
   });
@@ -42,6 +42,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
   });
 
   const isRecurring = form.watch("isRecurring");
+  const isRTL = i18n.dir() === 'rtl';
 
   const { mutate: createTask, isPending } = useMutation({
     mutationFn: async (data: InsertTask) => {
@@ -70,7 +71,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => createTask(data))} className="space-y-6">
+      <form onSubmit={form.handleSubmit((data) => createTask(data))} className="space-y-6" dir={i18n.dir()}>
         <div className="grid gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
@@ -188,10 +189,10 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                       type="date" 
                       {...field}
                       value={field.value || ''}
-                      className="pl-10"
+                      className={`${isRTL ? 'pr-10' : 'pl-10'}`}
                     />
                   </FormControl>
-                  <CalendarIcon className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+                  <CalendarIcon className={`h-4 w-4 absolute ${isRTL ? 'right-3' : 'left-3'} top-3 text-muted-foreground`} />
                 </div>
                 <FormDescription>
                   {t('tasks.form.dueDate.description')}
@@ -213,10 +214,10 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                       type="datetime-local" 
                       {...field}
                       value={field.value || ''}
-                      className="pl-10"
+                      className={`${isRTL ? 'pr-10' : 'pl-10'}`}
                     />
                   </FormControl>
-                  <Bell className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+                  <Bell className={`h-4 w-4 absolute ${isRTL ? 'right-3' : 'left-3'} top-3 text-muted-foreground`} />
                 </div>
                 <FormDescription>
                   {t('tasks.form.reminder.description')}
@@ -296,10 +297,10 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                           type="date" 
                           {...field}
                           value={field.value || ''}
-                          className="pl-10"
+                          className={`${isRTL ? 'pr-10' : 'pl-10'}`}
                         />
                       </FormControl>
-                      <CalendarIcon className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+                      <CalendarIcon className={`h-4 w-4 absolute ${isRTL ? 'right-3' : 'left-3'} top-3 text-muted-foreground`} />
                     </div>
                     <FormDescription>
                       {t('tasks.form.recurrenceEndDate.description')}
