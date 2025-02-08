@@ -7,6 +7,17 @@
       "description": "No tasks have been created yet.",
       "userDescription": "{{name}} has no tasks yet.",
       "cta": "Create a new task to get started!"
+    },
+    "theme": {
+      "toggle": "Toggle theme",
+      "light": "Light mode",
+      "dark": "Dark mode",
+      "system": "System theme"
+    },
+    "readme": {
+      "title": "View README",
+      "heading": "Family Tasks Documentation",
+      "close": "Close documentation"
     }
   },
   "tasks": {
