@@ -3,7 +3,7 @@ import { type Task, type User } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Trash2, AlertCircle, Clock, Calendar, Bell, User as UserIcon } from "lucide-react";
+import { Trash2, AlertCircle, Clock, Calendar, Bell, User as UserIcon, RepeatIcon } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
 import { toZonedTime, format as formatTz } from 'date-fns-tz';
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ export function TaskList({ currentUser }: TaskListProps) {
   const { toast } = useToast();
   const timeZone = 'Asia/Jerusalem';
 
-  const { data: tasks, isLoading } = useQuery<Task[]>({
+  const { data: tasks = [], isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"]
   });
 
@@ -69,9 +69,34 @@ export function TaskList({ currentUser }: TaskListProps) {
     }
   });
 
-  const filteredTasks = tasks?.filter(task =>
-    !currentUser || task.assignedTo === currentUser.id
-  );
+  // Filter and organize tasks
+  const organizedTasks = tasks.reduce((acc: Task[], task) => {
+    // Only include tasks for current user if specified
+    if (currentUser && task.assignedTo !== currentUser.id) {
+      return acc;
+    }
+
+    // For non-recurring tasks or parent recurring tasks, add them directly
+    if (!task.parentTaskId) {
+      acc.push(task);
+      return acc;
+    }
+
+    // For recurring instances, only include the next occurrence
+    const parentTask = tasks.find(t => t.id === task.parentTaskId);
+    if (parentTask && !acc.some(t => t.parentTaskId === task.parentTaskId)) {
+      // Find the next occurrence that hasn't passed
+      const futureInstances = tasks
+        .filter(t => t.parentTaskId === parentTask.id && t.dueDate && new Date(t.dueDate) >= new Date())
+        .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+
+      if (futureInstances.length > 0) {
+        acc.push(futureInstances[0]);
+      }
+    }
+
+    return acc;
+  }, []);
 
   const getAssignedUser = (taskId: number | null) => {
     if (!taskId) return null;
@@ -110,7 +135,7 @@ export function TaskList({ currentUser }: TaskListProps) {
 
   return (
     <div className="space-y-4">
-      {filteredTasks?.map(task => {
+      {organizedTasks.map(task => {
         const status = getTaskStatus(task);
         const assignedUser = getAssignedUser(task.assignedTo);
         const zonedDueDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
@@ -131,6 +156,9 @@ export function TaskList({ currentUser }: TaskListProps) {
                   <h3 className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
                     {task.title}
                   </h3>
+                  {task.isRecurring && (
+                    <RepeatIcon className="h-4 w-4 text-blue-500" />
+                  )}
                   {assignedUser && (
                     <Avatar className="h-6 w-6">
                       <AvatarFallback style={{ backgroundColor: assignedUser.color, color: 'white' }}>
@@ -152,6 +180,13 @@ export function TaskList({ currentUser }: TaskListProps) {
                   {status && (
                     <Badge variant="outline" className={status.color}>
                       {status.text}
+                    </Badge>
+                  )}
+
+                  {task.isRecurring && task.recurrencePattern && (
+                    <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-800">
+                      <RepeatIcon className="h-3 w-3" />
+                      {t(`tasks.recurrencePattern.${task.recurrencePattern}`)}
                     </Badge>
                   )}
 
@@ -190,7 +225,7 @@ export function TaskList({ currentUser }: TaskListProps) {
         );
       })}
 
-      {(!filteredTasks || filteredTasks.length === 0) && (
+      {(!organizedTasks || organizedTasks.length === 0) && (
         <Card className="p-8 flex flex-col items-center text-center text-muted-foreground">
           <AlertCircle className="h-12 w-12 mb-4" />
           <h3 className="font-medium text-lg">{t('app.noTasks.title')}</h3>
