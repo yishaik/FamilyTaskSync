@@ -66,8 +66,8 @@ export function TaskForm({ currentUser }: TaskFormProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       form.reset(defaultValues);
       toast({
-        title: t('task.created'),
-        description: t('task.createSuccess'),
+        title: t('notifications.success.taskCreated.title'),
+        description: t('notifications.success.taskCreated.description'),
       });
     }
   });
@@ -81,12 +81,12 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="title"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('task.title')}</FormLabel>
+                <FormLabel>{t('tasks.form.title.label')}</FormLabel>
                 <FormControl>
-                  <Input placeholder={t('task.enterTitle')} {...field} />
+                  <Input placeholder={t('tasks.form.title.placeholder')} {...field} />
                 </FormControl>
                 <FormDescription>
-                  {t('task.titleHelp')}
+                  {t('tasks.form.title.description')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -98,18 +98,18 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="assignedTo"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('task.assignee')}</FormLabel>
+                <FormLabel>{t('tasks.form.assignTo.label')}</FormLabel>
                 <Select
                   onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
                   value={field.value?.toString() ?? "unassigned"}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder={t('task.selectAssignee')} />
+                      <SelectValue placeholder={t('tasks.form.assignTo.placeholder')} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="unassigned">{t('task.unassigned')}</SelectItem>
+                    <SelectItem value="unassigned">{t('tasks.form.assignTo.unassigned')}</SelectItem>
                     {users.map(user => (
                       <SelectItem key={user.id} value={user.id.toString()}>
                         {user.name}
@@ -118,7 +118,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  {t('task.assigneeHelp')}
+                  {t('tasks.form.assignTo.description')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -131,16 +131,16 @@ export function TaskForm({ currentUser }: TaskFormProps) {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('task.description')}</FormLabel>
+              <FormLabel>{t('tasks.form.description.label')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder={t('task.enterDescription')}
+                  placeholder={t('tasks.form.description.placeholder')}
                   className="min-h-[100px]"
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                {t('task.descriptionHelp')}
+                {t('tasks.form.description.description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -153,26 +153,26 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="priority"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('task.priority')}</FormLabel>
+                <FormLabel>{t('tasks.form.priority.label')}</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder={t('task.selectPriority')} />
+                      <SelectValue placeholder={t('tasks.form.priority.placeholder')} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {taskPriorities.map(priority => (
                       <SelectItem key={priority} value={priority}>
-                        {t(`priority.${priority}`)}
+                        {t(`tasks.priority.${priority}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  {t('task.priorityHelp')}
+                  {t('tasks.form.priority.description')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -184,7 +184,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="dueDate"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel className="text-sm font-medium">{t('task.dueDate')}</FormLabel>
+                <FormLabel className="text-sm font-medium">{t('tasks.form.dueDate.label')}</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -198,7 +198,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                         {field.value ? (
                           format(new Date(field.value), "PPP")
                         ) : (
-                          <span>{t('task.selectDate')}</span>
+                          <span>{t('tasks.form.dueDate.placeholder')}</span>
                         )}
                         <CalendarIcon className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
                       </Button>
@@ -215,7 +215,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                   </PopoverContent>
                 </Popover>
                 <FormDescription className="text-xs text-muted-foreground">
-                  {t('task.dueDateHelp')}
+                  {t('tasks.form.dueDate.description')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -227,7 +227,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="reminderTime"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel className="text-sm font-medium">{t('task.reminder')}</FormLabel>
+                <FormLabel className="text-sm font-medium">{t('tasks.form.reminder.label')}</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -241,7 +241,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                         {field.value ? (
                           format(new Date(field.value), "PPP HH:mm")
                         ) : (
-                          <span>{t('task.selectDateTime')}</span>
+                          <span>{t('tasks.form.reminder.placeholder')}</span>
                         )}
                         <Bell className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
                       </Button>
@@ -266,7 +266,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                         initialFocus
                       />
                       <div className="flex items-center gap-2">
-                        <FormLabel className="text-sm">{t('task.selectTime')}</FormLabel>
+                        <FormLabel className="text-sm">{t('tasks.form.reminder.timeLabel')}</FormLabel>
                         <Input
                           type="time"
                           className="w-32"
@@ -286,7 +286,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                   </PopoverContent>
                 </Popover>
                 <FormDescription className="text-xs text-muted-foreground">
-                  {t('task.reminderHelp')}
+                  {t('tasks.form.reminder.description')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -302,10 +302,10 @@ export function TaskForm({ currentUser }: TaskFormProps) {
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
                   <FormLabel className="text-base">
-                    {t('task.recurring')}
+                    {t('tasks.form.recurring.label')}
                   </FormLabel>
                   <FormDescription>
-                    {t('task.recurringHelp')}
+                    {t('tasks.form.recurring.description')}
                   </FormDescription>
                 </div>
                 <FormControl>
@@ -325,26 +325,26 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                 name="recurrencePattern"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('task.pattern')}</FormLabel>
+                    <FormLabel>{t('tasks.form.recurrencePattern.label')}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value || undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={t('task.selectPattern')} />
+                          <SelectValue placeholder={t('tasks.form.recurrencePattern.placeholder')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {recurrencePatterns.map(pattern => (
                           <SelectItem key={pattern} value={pattern}>
-                            {t(`recurrence.${pattern}`)}
+                            {t(`tasks.recurrencePattern.${pattern}`)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      {t('task.patternHelp')}
+                      {t('tasks.form.recurrencePattern.description')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -356,7 +356,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                 name="recurrenceEndDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>{t('task.endDate')}</FormLabel>
+                    <FormLabel>{t('tasks.form.recurrenceEndDate.label')}</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -370,7 +370,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                             {field.value ? (
                               format(new Date(field.value), "PPP")
                             ) : (
-                              <span>{t('task.selectEndDate')}</span>
+                              <span>{t('tasks.form.recurrenceEndDate.placeholder')}</span>
                             )}
                             <CalendarIcon className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
                           </Button>
@@ -387,7 +387,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                       </PopoverContent>
                     </Popover>
                     <FormDescription>
-                      {t('task.endDateHelp')}
+                      {t('tasks.form.recurrenceEndDate.description')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -405,10 +405,10 @@ export function TaskForm({ currentUser }: TaskFormProps) {
           {isPending ? (
             <>
               <Clock className="mr-2 h-4 w-4 animate-spin" />
-              {t('task.creating')}
+              {t('tasks.form.submit.loading')}
             </>
           ) : (
-            t('task.create')
+            t('tasks.form.submit.default')
           )}
         </Button>
       </form>
