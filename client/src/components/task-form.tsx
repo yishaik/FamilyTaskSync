@@ -25,20 +25,22 @@ export function TaskForm({ currentUser }: TaskFormProps) {
     queryKey: ["/api/users"]
   });
 
+  const defaultValues: Partial<InsertTask> = {
+    title: "",
+    description: "",
+    priority: "medium",
+    completed: false,
+    assignedTo: currentUser?.id || null,
+    dueDate: "",
+    reminderTime: "",
+    recurrencePattern: null,
+    recurrenceEndDate: null,
+    isRecurring: false
+  };
+
   const form = useForm<InsertTask>({
     resolver: zodResolver(insertTaskSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      priority: "medium",
-      completed: false,
-      assignedTo: currentUser?.id || null,
-      dueDate: "",
-      reminderTime: "",
-      recurrencePattern: null,
-      recurrenceEndDate: null,
-      isRecurring: false
-    }
+    defaultValues
   });
 
   const isRecurring = form.watch("isRecurring");
@@ -58,10 +60,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      form.reset({
-        ...form.formState.defaultValues,
-        assignedTo: currentUser?.id || null
-      });
+      form.reset(defaultValues);
       toast({
         title: t('notifications.success.taskCreated.title'),
         description: t('notifications.success.taskCreated.description'),
@@ -134,7 +133,6 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                   placeholder={t('tasks.form.description.placeholder')}
                   className="min-h-[100px]"
                   {...field} 
-                  value={field.value || ''} 
                 />
               </FormControl>
               <FormDescription>
@@ -154,7 +152,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                 <FormLabel>{t('tasks.form.priority.label')}</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -188,7 +186,6 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                     <Input 
                       type="date" 
                       {...field}
-                      value={field.value || ''}
                       className={`${isRTL ? 'pr-10' : 'pl-10'}`}
                     />
                   </FormControl>
@@ -213,7 +210,6 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                     <Input 
                       type="datetime-local" 
                       {...field}
-                      value={field.value || ''}
                       className={`${isRTL ? 'pr-10' : 'pl-10'}`}
                     />
                   </FormControl>
@@ -228,7 +224,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4" dir={i18n.dir()}>
           <FormField
             control={form.control}
             name="isRecurring"
@@ -262,7 +258,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                     <FormLabel>{t('tasks.form.recurrencePattern.label')}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value || undefined}
+                      value={field.value || undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -296,7 +292,6 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                         <Input 
                           type="date" 
                           {...field}
-                          value={field.value || ''}
                           className={`${isRTL ? 'pr-10' : 'pl-10'}`}
                         />
                       </FormControl>
