@@ -12,6 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, Clock, Bell } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toZonedTime } from 'date-fns-tz';
+import { format } from 'date-fns';
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface TaskFormProps {
@@ -31,8 +35,8 @@ export function TaskForm({ currentUser }: TaskFormProps) {
     priority: "medium",
     completed: false,
     assignedTo: currentUser?.id || null,
-    dueDate: "",
-    reminderTime: "",
+    dueDate: null,
+    reminderTime: null,
     recurrencePattern: null,
     recurrenceEndDate: null,
     isRecurring: false
@@ -50,9 +54,9 @@ export function TaskForm({ currentUser }: TaskFormProps) {
     mutationFn: async (data: InsertTask) => {
       const formattedData = {
         ...data,
-        dueDate: data.dueDate ? toZonedTime(new Date(data.dueDate), 'Asia/Jerusalem').toISOString() : null,
-        reminderTime: data.reminderTime ? toZonedTime(new Date(data.reminderTime), 'Asia/Jerusalem').toISOString() : null,
-        recurrenceEndDate: data.recurrenceEndDate ? toZonedTime(new Date(data.recurrenceEndDate), 'Asia/Jerusalem').toISOString() : null,
+        dueDate: data.dueDate ? data.dueDate : null,
+        reminderTime: data.reminderTime ? data.reminderTime : null,
+        recurrenceEndDate: data.recurrenceEndDate ? data.recurrenceEndDate : null,
         assignedTo: data.assignedTo || null
       };
       const res = await apiRequest("POST", "/api/tasks", formattedData);
@@ -179,18 +183,37 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             control={form.control}
             name="dueDate"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>{t('tasks.form.dueDate.label')}</FormLabel>
-                <div className="relative">
-                  <FormControl>
-                    <Input 
-                      type="date" 
-                      {...field}
-                      className={`${isRTL ? 'pr-10' : 'pl-10'}`}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(new Date(field.value), "PPP")
+                        ) : (
+                          <span>{t('tasks.form.dueDate.placeholder')}</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value ? new Date(field.value) : undefined}
+                      onSelect={(date) => field.onChange(date?.toISOString() ?? null)}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
                     />
-                  </FormControl>
-                  <CalendarIcon className={`h-4 w-4 absolute ${isRTL ? 'right-3' : 'left-3'} top-3 text-muted-foreground`} />
-                </div>
+                  </PopoverContent>
+                </Popover>
                 <FormDescription>
                   {t('tasks.form.dueDate.description')}
                 </FormDescription>
@@ -203,18 +226,61 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             control={form.control}
             name="reminderTime"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>{t('tasks.form.reminder.label')}</FormLabel>
-                <div className="relative">
-                  <FormControl>
-                    <Input 
-                      type="datetime-local" 
-                      {...field}
-                      className={`${isRTL ? 'pr-10' : 'pl-10'}`}
-                    />
-                  </FormControl>
-                  <Bell className={`h-4 w-4 absolute ${isRTL ? 'right-3' : 'left-3'} top-3 text-muted-foreground`} />
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(new Date(field.value), "PPP HH:mm")
+                        ) : (
+                          <span>{t('tasks.form.reminder.placeholder')}</span>
+                        )}
+                        <Bell className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="p-4">
+                      <Calendar
+                        mode="single"
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const currentValue = field.value ? new Date(field.value) : new Date();
+                            date.setHours(currentValue.getHours());
+                            date.setMinutes(currentValue.getMinutes());
+                            field.onChange(date.toISOString());
+                          } else {
+                            field.onChange(null);
+                          }
+                        }}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                      <div className="mt-4">
+                        <Input
+                          type="time"
+                          onChange={(e) => {
+                            const [hours, minutes] = e.target.value.split(':').map(Number);
+                            const date = field.value ? new Date(field.value) : new Date();
+                            date.setHours(hours);
+                            date.setMinutes(minutes);
+                            field.onChange(date.toISOString());
+                          }}
+                          value={field.value ? format(new Date(field.value), "HH:mm") : ""}
+                        />
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <FormDescription>
                   {t('tasks.form.reminder.description')}
                 </FormDescription>
@@ -285,18 +351,37 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                 control={form.control}
                 name="recurrenceEndDate"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>{t('tasks.form.recurrenceEndDate.label')}</FormLabel>
-                    <div className="relative">
-                      <FormControl>
-                        <Input 
-                          type="date" 
-                          {...field}
-                          className={`${isRTL ? 'pr-10' : 'pl-10'}`}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "PPP")
+                            ) : (
+                              <span>{t('tasks.form.recurrenceEndDate.placeholder')}</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => field.onChange(date?.toISOString() ?? null)}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
                         />
-                      </FormControl>
-                      <CalendarIcon className={`h-4 w-4 absolute ${isRTL ? 'right-3' : 'left-3'} top-3 text-muted-foreground`} />
-                    </div>
+                      </PopoverContent>
+                    </Popover>
                     <FormDescription>
                       {t('tasks.form.recurrenceEndDate.description')}
                     </FormDescription>
