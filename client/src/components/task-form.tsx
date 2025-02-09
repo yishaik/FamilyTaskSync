@@ -25,7 +25,7 @@ interface TaskFormProps {
 export function TaskForm({ currentUser }: TaskFormProps) {
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
-  const { data: users = [] } = useQuery<User[]>({ 
+  const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"]
   });
 
@@ -133,10 +133,10 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             <FormItem>
               <FormLabel>{t('tasks.form.description.label')}</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder={t('tasks.form.description.placeholder')}
                   className="min-h-[100px]"
-                  {...field} 
+                  {...field}
                 />
               </FormControl>
               <FormDescription>
@@ -184,14 +184,14 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="dueDate"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>{t('tasks.form.dueDate.label')}</FormLabel>
+                <FormLabel className="text-sm font-medium">{t('tasks.form.dueDate.label')}</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full pl-3 text-left font-normal",
+                          "w-full h-10 px-3 text-left font-normal bg-background",
                           !field.value && "text-muted-foreground"
                         )}
                       >
@@ -200,11 +200,11 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                         ) : (
                           <span>{t('tasks.form.dueDate.placeholder')}</span>
                         )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        <CalendarIcon className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0" align={isRTL ? "end" : "start"}>
                     <Calendar
                       mode="single"
                       selected={field.value ? new Date(field.value) : undefined}
@@ -214,7 +214,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                     />
                   </PopoverContent>
                 </Popover>
-                <FormDescription>
+                <FormDescription className="text-xs text-muted-foreground">
                   {t('tasks.form.dueDate.description')}
                 </FormDescription>
                 <FormMessage />
@@ -227,14 +227,14 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="reminderTime"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>{t('tasks.form.reminder.label')}</FormLabel>
+                <FormLabel className="text-sm font-medium">{t('tasks.form.reminder.label')}</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full pl-3 text-left font-normal",
+                          "w-full h-10 px-3 text-left font-normal bg-background",
                           !field.value && "text-muted-foreground"
                         )}
                       >
@@ -243,12 +243,12 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                         ) : (
                           <span>{t('tasks.form.reminder.placeholder')}</span>
                         )}
-                        <Bell className="ml-auto h-4 w-4 opacity-50" />
+                        <Bell className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <div className="p-4">
+                  <PopoverContent className="w-auto p-4" align={isRTL ? "end" : "start"}>
+                    <div className="space-y-4">
                       <Calendar
                         mode="single"
                         selected={field.value ? new Date(field.value) : undefined}
@@ -265,15 +265,19 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                         disabled={(date) => date < new Date()}
                         initialFocus
                       />
-                      <div className="mt-4">
+                      <div className="flex items-center gap-2">
+                        <FormLabel className="text-sm">{t('tasks.form.reminder.timeLabel')}</FormLabel>
                         <Input
                           type="time"
+                          className="w-32"
                           onChange={(e) => {
                             const [hours, minutes] = e.target.value.split(':').map(Number);
                             const date = field.value ? new Date(field.value) : new Date();
-                            date.setHours(hours);
-                            date.setMinutes(minutes);
-                            field.onChange(date.toISOString());
+                            if (!isNaN(hours) && !isNaN(minutes)) {
+                              date.setHours(hours);
+                              date.setMinutes(minutes);
+                              field.onChange(date.toISOString());
+                            }
                           }}
                           value={field.value ? format(new Date(field.value), "HH:mm") : ""}
                         />
@@ -281,7 +285,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                     </div>
                   </PopoverContent>
                 </Popover>
-                <FormDescription>
+                <FormDescription className="text-xs text-muted-foreground">
                   {t('tasks.form.reminder.description')}
                 </FormDescription>
                 <FormMessage />
@@ -359,7 +363,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                           <Button
                             variant="outline"
                             className={cn(
-                              "w-full pl-3 text-left font-normal",
+                              "w-full h-10 px-3 text-left font-normal bg-background",
                               !field.value && "text-muted-foreground"
                             )}
                           >
@@ -368,11 +372,11 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                             ) : (
                               <span>{t('tasks.form.recurrenceEndDate.placeholder')}</span>
                             )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            <CalendarIcon className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className="w-auto p-0" align={isRTL ? "end" : "start"}>
                         <Calendar
                           mode="single"
                           selected={field.value ? new Date(field.value) : undefined}
@@ -393,9 +397,9 @@ export function TaskForm({ currentUser }: TaskFormProps) {
           )}
         </div>
 
-        <Button 
-          type="submit" 
-          disabled={isPending} 
+        <Button
+          type="submit"
+          disabled={isPending}
           className="w-full"
         >
           {isPending ? (
