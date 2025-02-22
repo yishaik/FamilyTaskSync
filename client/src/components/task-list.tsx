@@ -148,8 +148,8 @@ export function TaskList({ currentUser }: TaskListProps) {
     const zonedReminderTime = task.reminderTime ? toZonedTime(new Date(task.reminderTime), timeZone) : null;
 
     return (
-      <Card 
-        key={task.id} 
+      <Card
+        key={task.id}
         className={cn(
           "p-4 transition-colors",
           task.completed ? "bg-gray-50" : "hover:bg-primary/5",
@@ -238,7 +238,7 @@ export function TaskList({ currentUser }: TaskListProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
       {allBuckets.map(([userId, tasks]) => {
         const user = userId === 'unassigned' ? null : getAssignedUser(parseInt(userId));
 
@@ -262,9 +262,9 @@ export function TaskList({ currentUser }: TaskListProps) {
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               {tasks.map(task => (
-                <div key={task.id} className="space-y-2">
+                <div key={task.id} className="space-y-4">
                   {renderTaskCard(task)}
                   {'nextOccurrence' in task && task.nextOccurrence && (
                     renderTaskCard(task.nextOccurrence, true)
