@@ -22,27 +22,33 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar variant="inset">
-        <SidebarHeader className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ReadmeViewer />
-            <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleLanguage}
-              title={i18n.language === 'en' ? 'Switch to Hebrew' : 'החלף לאנגלית'}
-            >
-              <Languages className="h-5 w-5" />
-              <span className="sr-only">Switch language</span>
-            </Button>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          {/* Existing sidebar content */}
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>{children}</SidebarInset>
+      <div className="min-h-screen bg-gradient-to-br from-background to-background/80">
+        <Sidebar variant="inset" className="backdrop-blur-sm">
+          <SidebarHeader className="flex items-center justify-between p-4 border-b border-border/10">
+            <div className="flex items-center gap-3">
+              <ReadmeViewer />
+              <div className="h-4 w-[1px] bg-border/30" />
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleLanguage}
+                title={i18n.language === 'en' ? 'Switch to Hebrew' : 'החלף לאנגלית'}
+                className="transition-transform hover:scale-105 active:scale-95"
+              >
+                <Languages className="h-5 w-5" />
+                <span className="sr-only">Switch language</span>
+              </Button>
+            </div>
+          </SidebarHeader>
+          <SidebarContent className="p-4">
+            {/* Existing sidebar content */}
+          </SidebarContent>
+        </Sidebar>
+        <SidebarInset className="transition-all duration-200">
+          {children}
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   )
 }
