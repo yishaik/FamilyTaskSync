@@ -10,9 +10,7 @@ import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
 const formatPhoneNumber = (phone: string) => {
-  // Remove all non-digit characters except +
   const cleaned = phone.replace(/[^\d+]/g, '');
-  // Ensure it starts with +
   return cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
 };
 
@@ -94,7 +92,7 @@ export default function LoginPage() {
         variant: "destructive",
         description: error instanceof Error ? error.message : t('auth.login.errors.invalidCode')
       });
-      setOtpCode(''); // Clear the OTP input on error
+      setOtpCode(''); 
     } finally {
       setIsLoading(false);
     }
@@ -199,9 +197,14 @@ export default function LoginPage() {
                   onChange={(value) => setOtpCode(value)}
                   disabled={isLoading}
                   render={({ slots }) => (
-                    <InputOTPGroup>
-                      {slots.map((slot, index) => (
-                        <InputOTPSlot key={index} {...slot} />
+                    <InputOTPGroup className="gap-2">
+                      {slots.map((slot, idx) => (
+                        <InputOTPSlot
+                          key={idx}
+                          {...slot}
+                          index={idx}
+                          className="w-9 h-9 text-lg border-2"
+                        />
                       ))}
                     </InputOTPGroup>
                   )}
@@ -209,7 +212,11 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || otpCode.length !== 6}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || otpCode.length !== 6}
+            >
               {isLoading
                 ? t('common.loading')
                 : t('auth.login.buttons.verify')}
