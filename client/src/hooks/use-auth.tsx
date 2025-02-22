@@ -19,22 +19,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await fetch("/api/user", {
           headers: {
             'Accept': 'application/json'
-          }
+          },
+          credentials: 'include' // Ensure cookies are sent
         });
 
-        if (!res.ok) {
-          if (res.status === 401) return null;
-          throw new Error(`Failed to fetch user: ${res.status}`);
-        }
-
+        // Check if response is not JSON (e.g. HTML redirect)
         const contentType = res.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
+          // If not authenticated, return null instead of throwing
+          if (res.status === 401 || res.status === 302) {
+            return null;
+          }
           throw new Error("Invalid response format");
         }
 
-        return await res.json();
+        // Parse JSON response
+        const data = await res.json();
+
+        // If we got JSON but it indicates auth failure, return null
+        if (!res.ok) {
+          if (res.status === 401) {
+            return null;
+          }
+          throw new Error(data.message || `Failed to fetch user: ${res.status}`);
+        }
+
+        return data;
       } catch (error) {
         console.error("Auth error:", error);
+        // For network/parsing errors, return null instead of throwing
         return null;
       }
     },

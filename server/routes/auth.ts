@@ -40,6 +40,13 @@ router.post("/phone", async (req, res) => {
       req.session.tempSecret = secret.base32;
       req.session.userId = user.id;
 
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
       return res.json({
         requiresSetup: true,
         qrCode,
@@ -49,6 +56,13 @@ router.post("/phone", async (req, res) => {
 
     // User already has 2FA set up
     req.session.userId = user.id;
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
     return res.json({ requiresSetup: false });
   } catch (error) {
     console.error("Phone verification error:", error);
@@ -105,9 +119,16 @@ router.post("/verify", async (req, res) => {
       delete req.session.tempSecret;
     }
 
-    // Set user as authenticated
+    // Set user as authenticated and save session
     req.session.isAuthenticated = true;
     req.session.userId = user.id;
+
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
 
     return res.json({ success: true });
   } catch (error) {

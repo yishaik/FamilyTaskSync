@@ -84,23 +84,21 @@ export default function LoginPage() {
       const formattedPhone = formatPhoneNumber(phoneNumber);
       console.log("Submitting verification:", { phoneNumber: formattedPhone, code: otpCode });
 
-      const verifyRes = await apiRequest('POST', '/api/auth/verify', {
+      const res = await apiRequest('POST', '/api/auth/verify', {
         phoneNumber: formattedPhone,
         code: otpCode
       });
 
-      const verifyData = await verifyRes.json();
-
-      if (!verifyRes.ok || !verifyData.success) {
-        throw new Error(verifyData.message || t('auth.login.errors.invalidCode'));
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || t('auth.login.errors.invalidCode'));
       }
 
-      // Reset user query cache
-      queryClient.removeQueries({ queryKey: ['/api/user'] });
+      // Reset auth-related queries
+      queryClient.removeQueries();
 
-      // Redirect to home page immediately after successful verification
-      setLocation('/');
-
+      // Perform full page reload to ensure clean state
+      window.location.href = '/';
     } catch (error) {
       console.error("Verification error:", error);
       toast({
@@ -113,7 +111,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleSetupComplete = async () => {
+  const handleSetupComplete = () => {
     setStep('verify');
   };
 
@@ -225,6 +223,7 @@ export default function LoginPage() {
                         <InputOTPSlot
                           key={idx}
                           {...slot}
+                          index={idx}
                         />
                       ))}
                     </InputOTPGroup>

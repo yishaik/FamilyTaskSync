@@ -10,14 +10,24 @@ declare module "express-session" {
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   if (!req.session.isAuthenticated) {
-    return res.status(401).json({ message: "Authentication required" });
+    // If it's an API request, return 401
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    // For page requests, redirect to login
+    return res.redirect('/login');
   }
   next();
 };
 
 export const redirectIfAuthenticated = (req: Request, res: Response, next: NextFunction) => {
   if (req.session.isAuthenticated) {
-    return res.redirect("/");
+    // If it's an API request, return 200
+    if (req.path.startsWith('/api/')) {
+      return res.status(200).json({ authenticated: true });
+    }
+    // For page requests, redirect to home
+    return res.redirect('/');
   }
   next();
 };
