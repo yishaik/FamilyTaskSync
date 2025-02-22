@@ -7,8 +7,12 @@ import { eq } from 'drizzle-orm';
 import { db } from "./db";
 import { notificationService } from './services/NotificationService';
 import { NotificationError, ValidationError } from './services/errors';
+import authRouter from './routes/auth';
 
 export function registerRoutes(app: Express) {
+  // Register auth routes first
+  app.use('/api/auth', authRouter);
+
   // Users
   app.get("/api/users", async (_req, res) => {
     const users = await storage.getUsers();
