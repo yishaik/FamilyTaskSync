@@ -22,10 +22,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen flex-col md:flex-row bg-gradient-to-br from-background to-background/80">
+      <div className="relative flex min-h-screen flex-col md:flex-row bg-gradient-to-br from-background to-background/80">
         <Sidebar 
           variant="inset" 
-          className="backdrop-blur-sm w-full md:w-auto"
+          className="backdrop-blur-sm w-full md:w-auto shrink-0"
         >
           <SidebarHeader className="flex h-14 items-center justify-between border-b border-border/10 px-2 sm:px-4">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -50,9 +50,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {/* Sidebar content */}
           </SidebarContent>
         </Sidebar>
-        <SidebarInset className="flex-1 transition-all duration-200 p-2 sm:p-4 md:p-6">
-          <div className="max-w-7xl mx-auto w-full">
-            {children}
+        <SidebarInset className="flex-1 transition-all duration-200">
+          <div className="mx-auto max-w-[1200px] w-full h-full p-2 sm:p-4 md:p-6">
+            <div className="h-full w-full">
+              {children}
+            </div>
           </div>
         </SidebarInset>
       </div>
