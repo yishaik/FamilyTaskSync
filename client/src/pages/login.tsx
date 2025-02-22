@@ -94,8 +94,16 @@ export default function LoginPage() {
         throw new Error(data.message || t('auth.login.errors.invalidCode'));
       }
 
-      // Invalidate the user query to force a refresh of the auth state
-      await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      // Clear existing user data first
+      queryClient.removeQueries({ queryKey: ['/api/user'] });
+
+      // Force a fresh fetch of user data
+      await queryClient.fetchQuery({ 
+        queryKey: ['/api/user'],
+        staleTime: 0
+      });
+
+      // Only redirect after successful data refresh
       setLocation('/');
     } catch (error) {
       console.error("Verification error:", error);
