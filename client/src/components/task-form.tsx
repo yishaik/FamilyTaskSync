@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarIcon, Clock, Bell } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Bell, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toZonedTime } from 'date-fns-tz';
 import { format } from 'date-fns';
@@ -72,6 +72,29 @@ export function TaskForm({ currentUser }: TaskFormProps) {
     }
   });
 
+  const handleEdit = (user: User) => {
+    // Implement your edit logic here.  This is a placeholder.
+    console.log("Edit user:", user);
+  };
+
+  const TestNotificationButton = ({ userId, userName }: { userId: number | null | undefined; userName: string | undefined }) => {
+    // Implement your test notification logic here. This is a placeholder.
+    return (
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-6 w-6 p-0"
+        onClick={(e) => {
+          e.preventDefault();
+          console.log(`Test notification for user ${userId}: ${userName}`);
+        }}
+      >
+        <Bell className="h-3 w-3" />
+      </Button>
+    );
+  };
+
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((data) => createTask(data))} className="space-y-6" dir={i18n.dir()}>
@@ -98,7 +121,30 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             name="assignedTo"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('tasks.form.assignTo.label')}</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel className="flex items-center gap-2">
+                    {t('tasks.form.assignTo.label')}
+                    {field.value && (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const user = users.find(u => u.id === field.value);
+                            if (user) {
+                              handleEdit(user);
+                            }
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <TestNotificationButton userId={field.value} userName={users.find(u => u.id === field.value)?.name || ''} />
+                      </>
+                    )}
+                  </FormLabel>
+                </div>
                 <Select
                   onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
                   value={field.value?.toString() ?? "unassigned"}
@@ -117,9 +163,6 @@ export function TaskForm({ currentUser }: TaskFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
-                <FormDescription>
-                  {t('tasks.form.assignTo.description')}
-                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
