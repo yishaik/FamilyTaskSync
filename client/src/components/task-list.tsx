@@ -153,7 +153,7 @@ export function TaskList({ currentUser }: TaskListProps) {
         className={cn(
           "p-4 transition-colors",
           task.completed ? "bg-gray-50" : "hover:bg-primary/5",
-          isNextOccurrence && "ml-6 border-l-4 border-l-blue-500"
+          isNextOccurrence && "border-l-4 border-l-blue-500"
         )}
       >
         <div className="flex items-start gap-4">
@@ -168,13 +168,6 @@ export function TaskList({ currentUser }: TaskListProps) {
               </h3>
               {task.isRecurring && !isNextOccurrence && (
                 <RepeatIcon className="h-4 w-4 text-blue-500" />
-              )}
-              {assignedUser && (
-                <Avatar className="h-6 w-6">
-                  <AvatarFallback style={{ backgroundColor: assignedUser.color, color: 'white' }}>
-                    {assignedUser.name[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
               )}
             </div>
             {task.description && (
@@ -245,13 +238,13 @@ export function TaskList({ currentUser }: TaskListProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {allBuckets.map(([userId, tasks]) => {
         const user = userId === 'unassigned' ? null : getAssignedUser(parseInt(userId));
 
         return (
-          <div key={userId} className="space-y-4">
-            <div className="flex items-center gap-2">
+          <div key={userId} className="min-w-[300px]">
+            <div className="flex items-center gap-2 mb-4">
               {user ? (
                 <>
                   <Avatar className="h-8 w-8">
