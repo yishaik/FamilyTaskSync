@@ -6,6 +6,21 @@ import { saveSession } from "../middleware/auth";
 
 const router = Router();
 
+// Add a new endpoint to check user status
+router.get("/status", (req, res) => {
+  if (!req.session.isAuthenticated || !req.session.userId) {
+    return res.status(401).json({
+      authenticated: false,
+      redirect: '/login'
+    });
+  }
+
+  return res.json({
+    authenticated: true,
+    userId: req.session.userId
+  });
+});
+
 router.post("/phone", async (req, res) => {
   try {
     console.log("Received phone verification request:", req.body);
@@ -124,9 +139,11 @@ router.post("/verify", async (req, res) => {
       isAuthenticated: req.session.isAuthenticated
     });
 
-    // Return success with redirect URL
+    // Return success with redirect URL and session info
     return res.json({ 
       success: true,
+      authenticated: true,
+      userId: user.id,
       redirectUrl: '/'
     });
   } catch (error) {
