@@ -7,17 +7,20 @@ const router = Router();
 
 router.post("/phone", async (req, res) => {
   try {
+    console.log("Received phone verification request:", req.body);
     const { phoneNumber } = req.body;
 
     if (!phoneNumber) {
       return res.status(400).json({ message: "Phone number is required" });
     }
 
-    // Format phone number
+    // Format phone number - ensure it starts with +
     const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+    console.log("Formatted phone number:", formattedPhone);
 
     // Find user by phone number
     const user = await storage.getUserByPhone(formattedPhone);
+    console.log("Found user:", user);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -55,6 +58,7 @@ router.post("/phone", async (req, res) => {
 
 router.post("/verify", async (req, res) => {
   try {
+    console.log("Received verification request:", req.body);
     const { phoneNumber, code } = req.body;
 
     if (!phoneNumber || !code) {
@@ -63,9 +67,11 @@ router.post("/verify", async (req, res) => {
 
     // Format phone number
     const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+    console.log("Formatted phone number:", formattedPhone);
 
     // Find user
     const user = await storage.getUserByPhone(formattedPhone);
+    console.log("Found user:", user);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -73,6 +79,7 @@ router.post("/verify", async (req, res) => {
 
     // Get the secret (either temporary or permanent)
     const secret = user.twoFactorSecret || req.session.tempSecret;
+    console.log("Using secret:", { tempSecret: !!req.session.tempSecret, permanent: !!user.twoFactorSecret });
 
     if (!secret) {
       return res.status(400).json({ message: "2FA not set up" });

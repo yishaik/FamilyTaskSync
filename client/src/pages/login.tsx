@@ -10,9 +10,9 @@ import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
 const formatPhoneNumber = (phone: string) => {
-  // Remove all non-digit characters
-  const cleaned = phone.replace(/\D/g, '');
-  // Add + if it's not there
+  // Remove all non-digit characters except +
+  const cleaned = phone.replace(/[^\d+]/g, '');
+  // Ensure it starts with +
   return cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
 };
 
@@ -34,6 +34,8 @@ export default function LoginPage() {
 
     try {
       const formattedPhone = formatPhoneNumber(phoneNumber);
+      console.log("Submitting phone number:", formattedPhone);
+
       const res = await apiRequest('POST', '/api/auth/phone', { phoneNumber: formattedPhone });
       const data = await res.json();
 
@@ -49,6 +51,7 @@ export default function LoginPage() {
         setStep('verify');
       }
     } catch (error) {
+      console.error("Phone submission error:", error);
       toast({
         variant: "destructive",
         description: error instanceof Error ? error.message : t('auth.login.errors.userNotFound')
@@ -63,8 +66,11 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      const formattedPhone = formatPhoneNumber(phoneNumber);
+      console.log("Submitting verification:", { phoneNumber: formattedPhone, code: otpCode });
+
       const res = await apiRequest('POST', '/api/auth/verify', {
-        phoneNumber: formatPhoneNumber(phoneNumber),
+        phoneNumber: formattedPhone,
         code: otpCode
       });
       const data = await res.json();
@@ -75,6 +81,7 @@ export default function LoginPage() {
 
       setLocation('/');
     } catch (error) {
+      console.error("Verification error:", error);
       toast({
         variant: "destructive",
         description: error instanceof Error ? error.message : t('auth.login.errors.invalidCode')
