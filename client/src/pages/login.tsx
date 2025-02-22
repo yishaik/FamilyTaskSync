@@ -92,7 +92,7 @@ export default function LoginPage() {
         variant: "destructive",
         description: error instanceof Error ? error.message : t('auth.login.errors.invalidCode')
       });
-      setOtpCode(''); 
+      setOtpCode('');
     } finally {
       setIsLoading(false);
     }
@@ -186,7 +186,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               <Label htmlFor="otp">
                 {t('auth.login.verifyOTP.label')}
               </Label>
@@ -197,13 +197,12 @@ export default function LoginPage() {
                   onChange={(value) => setOtpCode(value)}
                   disabled={isLoading}
                   render={({ slots }) => (
-                    <InputOTPGroup className="gap-2">
+                    <InputOTPGroup>
                       {slots.map((slot, idx) => (
                         <InputOTPSlot
                           key={idx}
-                          {...slot}
                           index={idx}
-                          className="w-9 h-9 text-lg border-2"
+                          className="w-10 h-10 border-2 rounded-md text-center text-lg"
                         />
                       ))}
                     </InputOTPGroup>
@@ -214,7 +213,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full mt-6"
               disabled={isLoading || otpCode.length !== 6}
             >
               {isLoading
