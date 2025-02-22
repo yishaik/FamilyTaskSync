@@ -69,37 +69,46 @@ export function TaskList({ currentUser }: TaskListProps) {
     }
   });
 
-  // Filter and organize tasks
-  const organizedTasks = tasks.reduce((acc: Array<Task & { nextOccurrence?: Task }>, task) => {
+  // Organize tasks by assignee
+  const organizedTasks = tasks.reduce((acc: Record<string, Array<Task & { nextOccurrence?: Task }>>, task) => {
     // Only include tasks for current user if specified
     if (currentUser && task.assignedTo !== currentUser.id) {
       return acc;
     }
 
-    // For non-recurring tasks or parent recurring tasks, add them directly
-    if (!task.parentTaskId) {
-      // If it's a recurring task, find its next occurrence
-      if (task.isRecurring) {
-        const futureInstances = tasks
-          .filter(t => t.parentTaskId === task.id && t.dueDate && new Date(t.dueDate) >= new Date())
-          .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+    // Skip child tasks of recurring tasks
+    if (task.parentTaskId) {
+      return acc;
+    }
 
-        if (futureInstances.length > 0) {
-          acc.push({ ...task, nextOccurrence: futureInstances[0] });
-        } else {
-          acc.push(task);
-        }
+    const assignedUser = task.assignedTo ? users.find(u => u.id === task.assignedTo) : null;
+    const bucketKey = assignedUser ? assignedUser.id.toString() : 'unassigned';
+
+    if (!acc[bucketKey]) {
+      acc[bucketKey] = [];
+    }
+
+    // If it's a recurring task, find its next occurrence
+    if (task.isRecurring) {
+      const futureInstances = tasks
+        .filter(t => t.parentTaskId === task.id && t.dueDate && new Date(t.dueDate) >= new Date())
+        .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+
+      if (futureInstances.length > 0) {
+        acc[bucketKey].push({ ...task, nextOccurrence: futureInstances[0] });
       } else {
-        acc.push(task);
+        acc[bucketKey].push(task);
       }
+    } else {
+      acc[bucketKey].push(task);
     }
 
     return acc;
-  }, []);
+  }, {});
 
-  const getAssignedUser = (taskId: number | null) => {
-    if (!taskId) return null;
-    return users.find(user => user.id === taskId);
+  const getAssignedUser = (userId: number | null) => {
+    if (!userId) return null;
+    return users.find(user => user.id === userId);
   };
 
   if (isLoading) {
@@ -204,13 +213,6 @@ export function TaskList({ currentUser }: TaskListProps) {
                   Reminder: {formatTz(zonedReminderTime, 'MMM d, h:mm a', { timeZone })}
                 </Badge>
               )}
-
-              {!assignedUser && (
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <UserIcon className="h-3 w-3" />
-                  {t('tasks.status.unassigned')}
-                </Badge>
-              )}
             </div>
           </div>
           {!isNextOccurrence && (
@@ -228,25 +230,58 @@ export function TaskList({ currentUser }: TaskListProps) {
     );
   };
 
-  return (
-    <div className="space-y-4">
-      {organizedTasks.map(task => (
-        <div key={task.id} className="space-y-2">
-          {renderTaskCard(task)}
-          {'nextOccurrence' in task && task.nextOccurrence && (
-            renderTaskCard(task.nextOccurrence, true)
-          )}
-        </div>
-      ))}
+  const allBuckets = Object.entries(organizedTasks);
+  const hasAnyTasks = allBuckets.length > 0 && allBuckets.some(([_, tasks]) => tasks.length > 0);
 
-      {(!organizedTasks || organizedTasks.length === 0) && (
-        <Card className="p-8 flex flex-col items-center text-center text-muted-foreground">
-          <AlertCircle className="h-12 w-12 mb-4" />
-          <h3 className="font-medium text-lg">{t('app.noTasks.title')}</h3>
-          <p>{currentUser ? t('app.noTasks.userDescription', { name: currentUser.name }) : t('app.noTasks.description')}</p>
-          <p className="text-sm mt-2">{t('app.noTasks.cta')}</p>
-        </Card>
-      )}
+  if (!hasAnyTasks) {
+    return (
+      <Card className="p-8 flex flex-col items-center text-center text-muted-foreground">
+        <AlertCircle className="h-12 w-12 mb-4" />
+        <h3 className="font-medium text-lg">{t('app.noTasks.title')}</h3>
+        <p>{currentUser ? t('app.noTasks.userDescription', { name: currentUser.name }) : t('app.noTasks.description')}</p>
+        <p className="text-sm mt-2">{t('app.noTasks.cta')}</p>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {allBuckets.map(([userId, tasks]) => {
+        const user = userId === 'unassigned' ? null : getAssignedUser(parseInt(userId));
+
+        return (
+          <div key={userId} className="space-y-4">
+            <div className="flex items-center gap-2">
+              {user ? (
+                <>
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }}>
+                      {user.name[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h2 className="text-xl font-semibold">{user.name}'s Tasks</h2>
+                </>
+              ) : (
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <UserIcon className="h-6 w-6" />
+                  {t('tasks.status.unassigned')}
+                </h2>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              {tasks.map(task => (
+                <div key={task.id} className="space-y-2">
+                  {renderTaskCard(task)}
+                  {'nextOccurrence' in task && task.nextOccurrence && (
+                    renderTaskCard(task.nextOccurrence, true)
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
