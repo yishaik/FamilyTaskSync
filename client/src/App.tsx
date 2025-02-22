@@ -8,16 +8,20 @@ import Login from "@/pages/login";
 import { useTranslation } from "react-i18next";
 import "./i18n/i18n";
 import { Layout } from "@/components/layout";
+import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/">
-        <Layout>
-          <Home />
-        </Layout>
-      </Route>
+      <ProtectedRoute 
+        path="/" 
+        component={() => (
+          <Layout>
+            <Home />
+          </Layout>
+        )} 
+      />
       <Route component={NotFound} />
     </Switch>
   );
