@@ -88,6 +88,10 @@
       "daily": "Every Day",
       "weekly": "Every Week",
       "monthly": "Every Month"
+    },
+    "actions": {
+      "delete": "Delete",
+      "toggleComplete": "Toggle Complete"
     }
   },
   "notifications": {

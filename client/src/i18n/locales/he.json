@@ -55,6 +55,10 @@
       "low": "עדיפות נמוכה",
       "medium": "עדיפות בינונית",
       "high": "עדיפות גבוהה"
+    },
+    "actions": {
+      "delete": "מחק",
+      "toggleComplete": "סמן כבוצע"
     }
   },
   "notifications": {

@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
+import { SwipeAction } from "@/components/ui/swipe-action";
+import { Check, X } from "lucide-react";
 
 interface TaskListProps {
   currentUser: User | null;
@@ -147,7 +149,7 @@ export function TaskList({ currentUser }: TaskListProps) {
     const zonedDueDate = task.dueDate ? toZonedTime(new Date(task.dueDate), timeZone) : null;
     const zonedReminderTime = task.reminderTime ? toZonedTime(new Date(task.reminderTime), timeZone) : null;
 
-    return (
+    const cardContent = (
       <Card
         key={task.id}
         className={cn(
@@ -208,18 +210,35 @@ export function TaskList({ currentUser }: TaskListProps) {
               )}
             </div>
           </div>
-          {!isNextOccurrence && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => deleteTask(task.id)}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
         </div>
       </Card>
+    );
+
+    // Only add swipe actions to non-recurring tasks
+    if (isNextOccurrence) {
+      return cardContent;
+    }
+
+    return (
+      <SwipeAction
+        key={task.id}
+        onSwipeLeft={() => deleteTask(task.id)}
+        onSwipeRight={() => toggleComplete(task)}
+        leftAction={
+          <div className="flex items-center">
+            <X className="h-5 w-5" />
+            <span className="ml-2">{t('tasks.actions.delete')}</span>
+          </div>
+        }
+        rightAction={
+          <div className="flex items-center">
+            <Check className="h-5 w-5" />
+            <span className="mr-2">{t('tasks.actions.toggleComplete')}</span>
+          </div>
+        }
+      >
+        {cardContent}
+      </SwipeAction>
     );
   };
 
