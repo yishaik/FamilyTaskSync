@@ -15,12 +15,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: user, error, isLoading } = useQuery<User | null>({
     queryKey: ["/api/user"],
     queryFn: async () => {
-      const res = await fetch("/api/user");
-      if (!res.ok) {
-        if (res.status === 401) return null;
-        throw new Error("Failed to fetch user");
+      try {
+        const res = await fetch("/api/user");
+        if (!res.ok) {
+          if (res.status === 401) return null;
+          throw new Error(`Failed to fetch user: ${res.status}`);
+        }
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Invalid response format");
+        }
+        return await res.json();
+      } catch (error) {
+        console.error("Auth error:", error);
+        return null;
       }
-      return res.json();
     },
   });
 
