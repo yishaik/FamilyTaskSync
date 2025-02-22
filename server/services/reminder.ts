@@ -5,6 +5,7 @@ import { lt, eq, and, isNotNull, between } from 'drizzle-orm';
 import { tasks } from '@shared/schema';
 import { toZonedTime } from 'date-fns-tz';
 import { subMinutes, addMinutes } from 'date-fns';
+import type { Task } from '@shared/schema';
 
 const TIMEZONE = process.env.TZ || 'UTC';
 
@@ -53,10 +54,27 @@ export async function checkAndSendReminders() {
       }))
     });
 
-    for (const task of pendingReminders) {
-      if (!task.assignedTo) continue;
+    for (const rawTask of pendingReminders) {
+      if (!rawTask.assignedTo) continue;
 
       try {
+        // Ensure all required fields are present for the Task type
+        const task: Task = {
+          id: rawTask.id,
+          title: rawTask.title,
+          description: rawTask.description || null,
+          assignedTo: rawTask.assignedTo,
+          completed: rawTask.completed,
+          priority: rawTask.priority,
+          dueDate: rawTask.dueDate,
+          reminderTime: rawTask.reminderTime,
+          smsReminderSent: rawTask.smsReminderSent,
+          recurrencePattern: rawTask.recurrencePattern || null,
+          recurrenceEndDate: rawTask.recurrenceEndDate || null,
+          parentTaskId: rawTask.parentTaskId || null,
+          isRecurring: rawTask.isRecurring
+        };
+
         // Get the user assigned to the task
         const user = await storage.getUser(task.assignedTo);
         if (!user) {
