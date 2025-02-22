@@ -95,27 +95,12 @@ export default function LoginPage() {
         throw new Error(verifyData.message || t('auth.login.errors.invalidCode'));
       }
 
-      // Reset and invalidate current user data
+      // Reset user query cache
       queryClient.removeQueries({ queryKey: ['/api/user'] });
 
-      // Fetch fresh user data using apiRequest helper
-      const userRes = await apiRequest('GET', '/api/user');
-
-      if (!userRes.ok) {
-        const errorData = await userRes.json().catch(() => ({ message: t('auth.login.errors.refreshFailed') }));
-        throw new Error(errorData.message);
-      }
-
-      const userData = await userRes.json();
-      if (!userData) {
-        throw new Error(t('auth.login.errors.refreshFailed'));
-      }
-
-      // Update the cache with new user data
-      queryClient.setQueryData(['/api/user'], userData);
-
-      // Redirect to home page
+      // Redirect to home page immediately after successful verification
       setLocation('/');
+
     } catch (error) {
       console.error("Verification error:", error);
       toast({
