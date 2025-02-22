@@ -20,6 +20,39 @@
       "close": "Close documentation"
     }
   },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "description": "Enter your phone number to sign in",
+      "phoneNumber": {
+        "label": "Phone Number",
+        "placeholder": "Enter your phone number",
+        "description": "The phone number associated with your account"
+      },
+      "verifyOTP": {
+        "title": "Verify Authentication",
+        "description": "Please enter the code from your authenticator app",
+        "label": "Authentication Code",
+        "placeholder": "Enter 6-digit code"
+      },
+      "setupQR": {
+        "title": "Setup Two-Factor Authentication",
+        "description": "Scan this QR code with your authenticator app",
+        "manual": "Or enter this code manually:",
+        "continueButton": "I've scanned the QR code"
+      },
+      "errors": {
+        "invalidPhone": "Invalid phone number format",
+        "userNotFound": "No user found with this phone number",
+        "invalidCode": "Invalid authentication code"
+      },
+      "buttons": {
+        "continue": "Continue",
+        "verify": "Verify",
+        "retry": "Try Again"
+      }
+    }
+  },
   "tasks": {
     "form": {
       "title": {

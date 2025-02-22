@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   color: text("color").notNull(),
   phoneNumber: text("phone_number"),
   notificationPreference: text("notification_preference").notNull().default("sms"),
+  twoFactorSecret: text("two_factor_secret"),
 });
 
 export const tasks = pgTable("tasks", {
