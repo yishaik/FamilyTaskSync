@@ -95,10 +95,6 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
     setDialogOpen(false);
   };
 
-  const handleEditClick = (e: React.MouseEvent, user: User) => {
-    e.stopPropagation(); 
-    handleEdit(user);
-  };
 
   return (
     <div className="flex items-center space-x-2 overflow-x-auto pb-2 no-scrollbar">
@@ -116,7 +112,7 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
           <Button
             variant={selected?.id === user.id ? "secondary" : "outline"}
             className="gap-2 min-w-[120px]"
-            onClick={() => onSelect(user)}
+            onClick={() => handleEdit(user)}
           >
             <Avatar className="h-5 w-5">
               <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }}>
@@ -125,10 +121,7 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
             </Avatar>
             <span className="flex items-center gap-1">
               {user.name}
-              <Pencil 
-                className="h-3 w-3 text-muted-foreground/50 hover:text-muted-foreground cursor-pointer" 
-                onClick={(e) => handleEditClick(e, user)}
-              />
+              <Pencil className="h-3 w-3 text-muted-foreground/50" />
             </span>
             {user.phoneNumber && (
               user.notificationPreference === 'whatsapp' ? (
