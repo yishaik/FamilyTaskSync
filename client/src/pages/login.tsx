@@ -201,6 +201,7 @@ export default function LoginPage() {
                       {slots.map((slot, idx) => (
                         <InputOTPSlot
                           key={idx}
+                          {...slot}
                           index={idx}
                           className="w-10 h-10 border-2 rounded-md text-center text-lg"
                         />
