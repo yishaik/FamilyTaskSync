@@ -192,19 +192,21 @@ export default function LoginPage() {
               <Label htmlFor="otp">
                 {t('auth.login.verifyOTP.label')}
               </Label>
-              <InputOTP
-                maxLength={6}
-                value={otpCode}
-                onChange={setOtpCode}
-                disabled={isLoading}
-                render={({ slots }) => (
-                  <InputOTPGroup>
-                    {slots.map((slot, index) => (
-                      <InputOTPSlot key={index} {...slot} index={index} />
-                    ))}
-                  </InputOTPGroup>
-                )}
-              />
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={setOtpCode}
+                  disabled={isLoading}
+                  render={({ slots }) => (
+                    <InputOTPGroup>
+                      {slots.map((slot, index) => (
+                        <InputOTPSlot key={index} {...slot} index={index} />
+                      ))}
+                    </InputOTPGroup>
+                  )}
+                />
+              </div>
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading || otpCode.length !== 6}>
