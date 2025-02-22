@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 
 const formatPhoneNumber = (phone: string) => {
@@ -88,12 +88,14 @@ export default function LoginPage() {
         phoneNumber: formattedPhone,
         code: otpCode
       });
-      const data = await res.json();
 
       if (!res.ok) {
+        const data = await res.json();
         throw new Error(data.message || t('auth.login.errors.invalidCode'));
       }
 
+      // Invalidate the user query to force a refresh of the auth state
+      await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       setLocation('/');
     } catch (error) {
       console.error("Verification error:", error);
@@ -212,14 +214,13 @@ export default function LoginPage() {
                   id="otp"
                   placeholder="○"
                   pattern="\d*"
-                  inputType="tel"
+                  type="tel"
                   render={({ slots }) => (
                     <InputOTPGroup>
                       {slots.map((slot, idx) => (
                         <InputOTPSlot
                           key={idx}
                           {...slot}
-                          index={idx}
                           className="w-10 h-10 border-2 rounded-md text-center text-lg"
                         />
                       ))}
