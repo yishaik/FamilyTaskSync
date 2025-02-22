@@ -2,6 +2,7 @@ import { Router } from "express";
 import { storage } from "../storage";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
+import { saveSession } from "../middleware/auth";
 
 const router = Router();
 
@@ -40,12 +41,8 @@ router.post("/phone", async (req, res) => {
       req.session.tempSecret = secret.base32;
       req.session.userId = user.id;
 
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
+      // Save session
+      await saveSession(req);
 
       return res.json({
         requiresSetup: true,
@@ -56,12 +53,7 @@ router.post("/phone", async (req, res) => {
 
     // User already has 2FA set up
     req.session.userId = user.id;
-    await new Promise<void>((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+    await saveSession(req);
 
     return res.json({ requiresSetup: false });
   } catch (error) {
@@ -119,18 +111,24 @@ router.post("/verify", async (req, res) => {
       delete req.session.tempSecret;
     }
 
-    // Set user as authenticated and save session
+    // Set user as authenticated
     req.session.isAuthenticated = true;
     req.session.userId = user.id;
 
-    await new Promise<void>((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) reject(err);
-        else resolve();
-      });
+    // Save session and ensure it's written before sending response
+    await saveSession(req);
+
+    // Log the session state for debugging
+    console.log("Session after verification:", {
+      userId: req.session.userId,
+      isAuthenticated: req.session.isAuthenticated
     });
 
-    return res.json({ success: true });
+    // Return success with redirect URL
+    return res.json({ 
+      success: true,
+      redirectUrl: '/'
+    });
   } catch (error) {
     console.error("Code verification error:", error);
     return res.status(500).json({ message: "Internal server error" });

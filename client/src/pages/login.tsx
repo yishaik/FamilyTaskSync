@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 
 const formatPhoneNumber = (phone: string) => {
@@ -43,7 +43,15 @@ export default function LoginPage() {
       const formattedPhone = formatPhoneNumber(phoneNumber);
       console.log("Submitting phone number:", formattedPhone);
 
-      const res = await apiRequest('POST', '/api/auth/phone', { phoneNumber: formattedPhone });
+      const res = await fetch('/api/auth/phone', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ phoneNumber: formattedPhone })
+      });
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -84,21 +92,32 @@ export default function LoginPage() {
       const formattedPhone = formatPhoneNumber(phoneNumber);
       console.log("Submitting verification:", { phoneNumber: formattedPhone, code: otpCode });
 
-      const res = await apiRequest('POST', '/api/auth/verify', {
-        phoneNumber: formattedPhone,
-        code: otpCode
+      const res = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          phoneNumber: formattedPhone,
+          code: otpCode
+        })
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || t('auth.login.errors.invalidCode'));
+        throw new Error(data.message || t('auth.login.errors.invalidCode'));
       }
 
-      // Reset auth-related queries
-      queryClient.removeQueries();
+      // Clear all queries to ensure fresh state
+      await queryClient.clear();
 
-      // Perform full page reload to ensure clean state
-      window.location.href = '/';
+      // Small delay to ensure session is properly saved
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Redirect using the URL from the response, defaulting to '/'
+      window.location.href = data.redirectUrl || '/';
     } catch (error) {
       console.error("Verification error:", error);
       toast({

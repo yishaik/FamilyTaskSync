@@ -21,7 +21,8 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
 };
 
 export const redirectIfAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  if (req.session.isAuthenticated) {
+  // Check both userId and isAuthenticated flag
+  if (req.session.isAuthenticated && req.session.userId) {
     // If it's an API request, return 200
     if (req.path.startsWith('/api/')) {
       return res.status(200).json({ authenticated: true });
@@ -30,4 +31,14 @@ export const redirectIfAuthenticated = (req: Request, res: Response, next: NextF
     return res.redirect('/');
   }
   next();
+};
+
+// Helper to save session as Promise
+export const saveSession = (req: Request): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    req.session.save((err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
 };
