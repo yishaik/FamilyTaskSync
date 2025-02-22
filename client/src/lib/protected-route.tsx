@@ -1,5 +1,6 @@
-import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import { useLocation } from "wouter";
 import { useEffect } from "react";
 
 interface ProtectedRouteProps {
@@ -8,22 +9,26 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ path, component: Component }: ProtectedRouteProps) {
+  const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  // For now, we'll check session status from the /api/user endpoint
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch('/api/user');
-        if (!res.ok) {
-          setLocation('/login');
-        }
-      } catch (error) {
-        setLocation('/login');
-      }
+    if (!isLoading && !user) {
+      setLocation('/login');
     }
-    checkAuth();
-  }, [setLocation]);
+  }, [user, isLoading, setLocation]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return <Component />;
 }

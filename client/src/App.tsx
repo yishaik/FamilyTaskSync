@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import "./i18n/i18n";
 import { Layout } from "@/components/layout";
 import { ProtectedRoute } from "./lib/protected-route";
+import { AuthProvider } from "./hooks/use-auth";
 
 function Router() {
   return (
@@ -30,8 +31,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <AuthProvider>
+        <Router />
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
