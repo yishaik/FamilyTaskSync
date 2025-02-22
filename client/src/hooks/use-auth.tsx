@@ -52,7 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     staleTime: 0, // Always fetch fresh data
-    retry: 1 // Only retry once on failure
+    retry: 1, // Only retry once on failure
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnReconnect: true // Refetch when network reconnects
   });
 
   return (

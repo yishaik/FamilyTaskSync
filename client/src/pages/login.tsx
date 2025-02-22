@@ -113,11 +113,11 @@ export default function LoginPage() {
       // Clear all queries to ensure fresh state
       await queryClient.clear();
 
-      // Small delay to ensure session is properly saved
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Invalidate the user query to trigger a refetch
+      await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
 
-      // Redirect using the URL from the response, defaulting to '/'
-      window.location.href = data.redirectUrl || '/';
+      // Use setLocation instead of window.location for SPA navigation
+      setLocation('/');
     } catch (error) {
       console.error("Verification error:", error);
       toast({
