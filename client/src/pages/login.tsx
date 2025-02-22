@@ -196,12 +196,12 @@ export default function LoginPage() {
                 <InputOTP
                   maxLength={6}
                   value={otpCode}
-                  onChange={setOtpCode}
+                  onChange={(value) => setOtpCode(value)}
                   disabled={isLoading}
                   render={({ slots }) => (
                     <InputOTPGroup>
                       {slots.map((slot, index) => (
-                        <InputOTPSlot key={index} {...slot} index={index} />
+                        <InputOTPSlot key={index} {...slot} />
                       ))}
                     </InputOTPGroup>
                   )}
