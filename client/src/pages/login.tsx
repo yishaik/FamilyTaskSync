@@ -84,28 +84,40 @@ export default function LoginPage() {
       const formattedPhone = formatPhoneNumber(phoneNumber);
       console.log("Submitting verification:", { phoneNumber: formattedPhone, code: otpCode });
 
-      const res = await apiRequest('POST', '/api/auth/verify', {
+      const verifyRes = await apiRequest('POST', '/api/auth/verify', {
         phoneNumber: formattedPhone,
         code: otpCode
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || t('auth.login.errors.invalidCode'));
+      const verifyData = await verifyRes.json();
+
+      if (!verifyRes.ok || !verifyData.success) {
+        throw new Error(verifyData.message || t('auth.login.errors.invalidCode'));
       }
 
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(t('auth.login.errors.invalidCode'));
+      // Reset and invalidate current user data
+      queryClient.removeQueries({ queryKey: ['/api/user'] });
+
+      // Fetch fresh user data
+      const userRes = await fetch('/api/user', {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!userRes.ok) {
+        throw new Error(t('auth.login.errors.refreshFailed'));
       }
 
-      // Reset queries to force a fresh fetch
-      await queryClient.resetQueries({ queryKey: ['/api/user'] });
+      const userData = await userRes.json();
+      if (!userData) {
+        throw new Error(t('auth.login.errors.refreshFailed'));
+      }
 
-      // Wait for the query to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Update the cache with new user data
+      queryClient.setQueryData(['/api/user'], userData);
 
-      // Redirect to home
+      // Redirect to home page
       setLocation('/');
     } catch (error) {
       console.error("Verification error:", error);
@@ -231,7 +243,6 @@ export default function LoginPage() {
                         <InputOTPSlot
                           key={idx}
                           {...slot}
-                          className="w-10 h-10 border-2 rounded-md text-center text-lg"
                         />
                       ))}
                     </InputOTPGroup>
