@@ -63,6 +63,14 @@ export default function LoginPage() {
 
   const handleVerifySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!otpCode || otpCode.length !== 6) {
+      toast({
+        variant: "destructive",
+        description: t('auth.login.errors.invalidCode')
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -86,6 +94,7 @@ export default function LoginPage() {
         variant: "destructive",
         description: error instanceof Error ? error.message : t('auth.login.errors.invalidCode')
       });
+      setOtpCode(''); // Clear the OTP input on error
     } finally {
       setIsLoading(false);
     }
@@ -198,7 +207,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || otpCode.length !== 6}>
               {isLoading
                 ? t('common.loading')
                 : t('auth.login.buttons.verify')}
