@@ -22,9 +22,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-gradient-to-br from-background to-background/80">
+      <div className="flex min-h-screen bg-gradient-to-br from-background to-background/80">
         <Sidebar variant="inset" className="backdrop-blur-sm">
-          <SidebarHeader className="flex items-center justify-between p-4 border-b border-border/10">
+          <SidebarHeader className="flex h-14 items-center justify-between border-b border-border/10 px-4">
             <div className="flex items-center gap-3">
               <ReadmeViewer />
               <div className="h-4 w-[1px] bg-border/30" />
@@ -45,7 +45,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {/* Existing sidebar content */}
           </SidebarContent>
         </Sidebar>
-        <SidebarInset className="transition-all duration-200">
+        <SidebarInset className="flex-1 transition-all duration-200">
           {children}
         </SidebarInset>
       </div>
