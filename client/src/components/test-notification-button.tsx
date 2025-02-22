@@ -4,6 +4,11 @@ import { Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TestNotificationButtonProps {
   userId: number;
@@ -22,14 +27,15 @@ export function TestNotificationButton({ userId, userName }: TestNotificationBut
         "POST",
         `/api/notifications/test/${userId}`
       );
-      
-      if (response.success) {
+      const data = await response.json();
+
+      if (data.success) {
         toast({
           title: t('notifications.test.success'),
           description: t('notifications.test.sent', { name: userName }),
         });
       } else {
-        throw new Error(response.message || 'Failed to send notification');
+        throw new Error(data.message || 'Failed to send notification');
       }
     } catch (error) {
       toast({
@@ -43,15 +49,21 @@ export function TestNotificationButton({ userId, userName }: TestNotificationBut
   };
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={sendTestNotification}
-      disabled={isSending}
-      className="ml-2"
-    >
-      <Bell className="h-4 w-4 mr-1" />
-      {isSending ? t('notifications.test.sending') : t('notifications.test.send')}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={sendTestNotification}
+          disabled={isSending}
+          className="h-9 w-9 p-0"
+        >
+          <Bell className={`h-4 w-4 ${isSending ? 'animate-pulse' : ''}`} />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{t('notifications.test.send')}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }

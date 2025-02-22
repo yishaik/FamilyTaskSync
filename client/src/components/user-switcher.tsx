@@ -118,7 +118,10 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
                 {user.name[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <span>{user.name}</span>
+            <span className="flex items-center gap-1">
+              {user.name}
+              <Pencil className="h-3 w-3 text-muted-foreground/50" />
+            </span>
             {user.phoneNumber && (
               user.notificationPreference === 'whatsapp' ? (
                 <SiWhatsapp className="h-3 w-3 text-muted-foreground ml-auto" />
@@ -126,14 +129,6 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
                 <Phone className="h-3 w-3 text-muted-foreground ml-auto" />
               )
             )}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-9 w-9 p-0"
-            onClick={() => handleEdit(user)}
-          >
-            <Pencil className="h-3 w-3" />
           </Button>
           <TestNotificationButton userId={user.id} userName={user.name} />
         </div>
