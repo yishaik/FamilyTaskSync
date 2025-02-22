@@ -98,15 +98,12 @@ export default function LoginPage() {
       // Reset and invalidate current user data
       queryClient.removeQueries({ queryKey: ['/api/user'] });
 
-      // Fetch fresh user data
-      const userRes = await fetch('/api/user', {
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
+      // Fetch fresh user data using apiRequest helper
+      const userRes = await apiRequest('GET', '/api/user');
 
       if (!userRes.ok) {
-        throw new Error(t('auth.login.errors.refreshFailed'));
+        const errorData = await userRes.json().catch(() => ({ message: t('auth.login.errors.refreshFailed') }));
+        throw new Error(errorData.message);
       }
 
       const userData = await userRes.json();
