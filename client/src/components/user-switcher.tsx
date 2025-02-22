@@ -2,7 +2,7 @@ import { useState } from "react";
 import { type User } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserCog, Pencil, Phone } from "lucide-react";
+import { UserCog, Pencil, Phone, Users } from "lucide-react";
 import { SiWhatsapp } from 'react-icons/si';
 import { Input } from "@/components/ui/input";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -96,48 +96,44 @@ export function UserSwitcher({ users, selected, onSelect }: UserSwitcherProps) {
   };
 
   return (
-    <div className="flex gap-2 flex-wrap">
+    <div className="flex items-center space-x-2 overflow-x-auto pb-2 no-scrollbar">
       <Button
         variant={!selected ? "secondary" : "outline"}
-        className="gap-2 h-10"
+        className="gap-2 shrink-0 min-w-[120px]"
         onClick={() => onSelect(null)}
       >
-        <Avatar className="h-6 w-6">
-          <AvatarFallback className="bg-primary/10">
-            <UserCog className="h-4 w-4" />
-          </AvatarFallback>
-        </Avatar>
-        <span>{t('tasks.filter.everyone')}</span>
+        <Users className="h-4 w-4" />
+        <span>{t('common.everyone')}</span>
       </Button>
 
       {users.map(user => (
-        <div key={user.id} className="flex items-center gap-1">
+        <div key={user.id} className="flex items-center gap-1 shrink-0">
           <Button
             variant={selected?.id === user.id ? "secondary" : "outline"}
-            className="gap-2 h-10"
+            className="gap-2 min-w-[120px]"
             onClick={() => onSelect(user)}
           >
-            <Avatar className="h-6 w-6">
+            <Avatar className="h-5 w-5">
               <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }}>
                 {user.name[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <span>{user.name}'s {t('tasks.label')}</span>
+            <span>{user.name}</span>
             {user.phoneNumber && (
               user.notificationPreference === 'whatsapp' ? (
-                <SiWhatsapp className="h-4 w-4 text-muted-foreground" />
+                <SiWhatsapp className="h-3 w-3 text-muted-foreground ml-auto" />
               ) : (
-                <Phone className="h-4 w-4 text-muted-foreground" />
+                <Phone className="h-3 w-3 text-muted-foreground ml-auto" />
               )
             )}
           </Button>
           <Button
-            size="icon"
+            size="sm"
             variant="ghost"
-            className="h-10 w-10"
+            className="h-9 w-9 p-0"
             onClick={() => handleEdit(user)}
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-3 w-3" />
           </Button>
           <TestNotificationButton userId={user.id} userName={user.name} />
         </div>
