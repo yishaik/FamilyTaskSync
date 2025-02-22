@@ -11,12 +11,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, Clock, Bell } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { toZonedTime } from 'date-fns-tz';
 import { format } from 'date-fns';
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FormLayout, FormSection, FormGroup } from "@/components/ui/form-layout";
 
 interface TaskFormProps {
   currentUser: User | null;
@@ -29,7 +29,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
     queryKey: ["/api/users"]
   });
 
-  const defaultValues: Partial<InsertTask> = {
+  const defaultValues: InsertTask = {
     title: "",
     description: "",
     priority: "medium",
@@ -54,9 +54,9 @@ export function TaskForm({ currentUser }: TaskFormProps) {
     mutationFn: async (data: InsertTask) => {
       const formattedData = {
         ...data,
-        dueDate: data.dueDate ? data.dueDate : null,
-        reminderTime: data.reminderTime ? data.reminderTime : null,
-        recurrenceEndDate: data.recurrenceEndDate ? data.recurrenceEndDate : null,
+        dueDate: data.dueDate,
+        reminderTime: data.reminderTime,
+        recurrenceEndDate: data.recurrenceEndDate,
         assignedTo: data.assignedTo || null
       };
       const res = await apiRequest("POST", "/api/tasks", formattedData);
@@ -74,328 +74,346 @@ export function TaskForm({ currentUser }: TaskFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => createTask(data))} className="space-y-6" dir={i18n.dir()}>
-        <div className="grid gap-6 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('tasks.form.title.label')}</FormLabel>
-                <FormControl>
-                  <Input placeholder={t('tasks.form.title.placeholder')} {...field} />
-                </FormControl>
-                <FormDescription>
-                  {t('tasks.form.title.description')}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="assignedTo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('tasks.form.assignTo.label')}</FormLabel>
-                <Select
-                  onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                  value={field.value?.toString() ?? "unassigned"}
-                >
+      <FormLayout onSubmit={form.handleSubmit((data) => createTask(data))} dir={i18n.dir()}>
+        <FormSection>
+          <FormGroup>
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('tasks.form.title.label')}</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('tasks.form.assignTo.placeholder')} />
-                    </SelectTrigger>
+                    <Input placeholder={t('tasks.form.title.placeholder')} {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="unassigned">{t('tasks.form.assignTo.unassigned')}</SelectItem>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id.toString()}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  {t('tasks.form.assignTo.description')}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                  <FormDescription>
+                    {t('tasks.form.title.description')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </FormGroup>
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('tasks.form.description.label')}</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder={t('tasks.form.description.placeholder')}
-                  className="min-h-[100px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                {t('tasks.form.description.description')}
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid gap-6 md:grid-cols-3">
-          <FormField
-            control={form.control}
-            name="priority"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('tasks.form.priority.label')}</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('tasks.form.priority.placeholder')} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {taskPriorities.map(priority => (
-                      <SelectItem key={priority} value={priority}>
-                        {t(`tasks.priority.${priority}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  {t('tasks.form.priority.description')}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="dueDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className="text-sm font-medium">{t('tasks.form.dueDate.label')}</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
+          <FormGroup>
+            <FormField
+              control={form.control}
+              name="assignedTo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('tasks.form.assignTo.label')}</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                    value={field.value?.toString() ?? "unassigned"}
+                  >
                     <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full h-10 px-3 text-left font-normal bg-background",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), "PPP")
-                        ) : (
-                          <span>{t('tasks.form.dueDate.placeholder')}</span>
-                        )}
-                        <CalendarIcon className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
-                      </Button>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('tasks.form.assignTo.placeholder')} />
+                      </SelectTrigger>
                     </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align={isRTL ? "end" : "start"}>
-                    <Calendar
-                      mode="single"
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => field.onChange(date?.toISOString() ?? null)}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
+                    <SelectContent>
+                      <SelectItem value="unassigned">{t('tasks.form.assignTo.unassigned')}</SelectItem>
+                      {users.map(user => (
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {t('tasks.form.assignTo.description')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('tasks.form.description.label')}</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder={t('tasks.form.description.placeholder')}
+                      className="min-h-[100px]"
+                      {...field}
                     />
-                  </PopoverContent>
-                </Popover>
-                <FormDescription className="text-xs text-muted-foreground">
-                  {t('tasks.form.dueDate.description')}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  </FormControl>
+                  <FormDescription>
+                    {t('tasks.form.description.description')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </FormGroup>
+        </FormSection>
 
-          <FormField
-            control={form.control}
-            name="reminderTime"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className="text-sm font-medium">{t('tasks.form.reminder.label')}</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
+        <FormSection>
+          <FormGroup>
+            <FormField
+              control={form.control}
+              name="priority"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('tasks.form.priority.label')}</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
                     <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full h-10 px-3 text-left font-normal bg-background",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), "PPP HH:mm")
-                        ) : (
-                          <span>{t('tasks.form.reminder.placeholder')}</span>
-                        )}
-                        <Bell className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
-                      </Button>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('tasks.form.priority.placeholder')} />
+                      </SelectTrigger>
                     </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-4" align={isRTL ? "end" : "start"}>
-                    <div className="space-y-4">
+                    <SelectContent>
+                      {taskPriorities.map(priority => (
+                        <SelectItem key={priority} value={priority}>
+                          {t(`tasks.priority.${priority}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {t('tasks.form.priority.description')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <FormField
+              control={form.control}
+              name="dueDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('tasks.form.dueDate.label')}</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full h-10 px-3 text-left font-normal bg-background",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(new Date(field.value), "PPP")
+                          ) : (
+                            <span>{t('tasks.form.dueDate.placeholder')}</span>
+                          )}
+                          <CalendarIcon className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align={isRTL ? "end" : "start"}>
                       <Calendar
                         mode="single"
                         selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            const currentValue = field.value ? new Date(field.value) : new Date();
-                            date.setHours(currentValue.getHours());
-                            date.setMinutes(currentValue.getMinutes());
-                            field.onChange(date.toISOString());
-                          } else {
-                            field.onChange(null);
-                          }
-                        }}
+                        onSelect={(date) => field.onChange(date?.toISOString() ?? null)}
                         disabled={(date) => date < new Date()}
                         initialFocus
                       />
-                      <div className="flex items-center gap-2">
-                        <FormLabel className="text-sm">{t('tasks.form.reminder.timeLabel')}</FormLabel>
-                        <Input
-                          type="time"
-                          className="w-32"
-                          onChange={(e) => {
-                            const [hours, minutes] = e.target.value.split(':').map(Number);
-                            const date = field.value ? new Date(field.value) : new Date();
-                            if (!isNaN(hours) && !isNaN(minutes)) {
-                              date.setHours(hours);
-                              date.setMinutes(minutes);
-                              field.onChange(date.toISOString());
-                            }
-                          }}
-                          value={field.value ? format(new Date(field.value), "HH:mm") : ""}
-                        />
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <FormDescription className="text-xs text-muted-foreground">
-                  {t('tasks.form.reminder.description')}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="space-y-4" dir={i18n.dir()}>
-          <FormField
-            control={form.control}
-            name="isRecurring"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">
-                    {t('tasks.form.recurring.label')}
-                  </FormLabel>
+                    </PopoverContent>
+                  </Popover>
                   <FormDescription>
-                    {t('tasks.form.recurring.description')}
+                    {t('tasks.form.dueDate.description')}
                   </FormDescription>
-                </div>
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </FormGroup>
 
-          {isRecurring && (
-            <div className="grid gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="recurrencePattern"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('tasks.form.recurrencePattern.label')}</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || undefined}
-                    >
+          <FormGroup>
+            <FormField
+              control={form.control}
+              name="reminderTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('tasks.form.reminder.label')}</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('tasks.form.recurrencePattern.placeholder')} />
-                        </SelectTrigger>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full h-10 px-3 text-left font-normal bg-background",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(new Date(field.value), "PPP HH:mm")
+                          ) : (
+                            <span>{t('tasks.form.reminder.placeholder')}</span>
+                          )}
+                          <Bell className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
+                        </Button>
                       </FormControl>
-                      <SelectContent>
-                        {recurrencePatterns.map(pattern => (
-                          <SelectItem key={pattern} value={pattern}>
-                            {t(`tasks.recurrencePattern.${pattern}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      {t('tasks.form.recurrencePattern.description')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="recurrenceEndDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>{t('tasks.form.recurrenceEndDate.label')}</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full h-10 px-3 text-left font-normal bg-background",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(new Date(field.value), "PPP")
-                            ) : (
-                              <span>{t('tasks.form.recurrenceEndDate.placeholder')}</span>
-                            )}
-                            <CalendarIcon className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align={isRTL ? "end" : "start"}>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-4" align={isRTL ? "end" : "start"}>
+                      <div className="space-y-4">
                         <Calendar
                           mode="single"
                           selected={field.value ? new Date(field.value) : undefined}
-                          onSelect={(date) => field.onChange(date?.toISOString() ?? null)}
+                          onSelect={(date) => {
+                            if (date) {
+                              const currentValue = field.value ? new Date(field.value) : new Date();
+                              date.setHours(currentValue.getHours());
+                              date.setMinutes(currentValue.getMinutes());
+                              field.onChange(date.toISOString());
+                            } else {
+                              field.onChange(null);
+                            }
+                          }}
                           disabled={(date) => date < new Date()}
                           initialFocus
                         />
-                      </PopoverContent>
-                    </Popover>
+                        <div className="flex items-center gap-2">
+                          <FormLabel className="text-sm">{t('tasks.form.reminder.timeLabel')}</FormLabel>
+                          <Input
+                            type="time"
+                            className="w-32"
+                            onChange={(e) => {
+                              const [hours, minutes] = e.target.value.split(':').map(Number);
+                              const date = field.value ? new Date(field.value) : new Date();
+                              if (!isNaN(hours) && !isNaN(minutes)) {
+                                date.setHours(hours);
+                                date.setMinutes(minutes);
+                                field.onChange(date.toISOString());
+                              }
+                            }}
+                            value={field.value ? format(new Date(field.value), "HH:mm") : ""}
+                          />
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <FormDescription>
+                    {t('tasks.form.reminder.description')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </FormGroup>
+        </FormSection>
+
+        <FormSection>
+          <FormGroup>
+            <FormField
+              control={form.control}
+              name="isRecurring"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      {t('tasks.form.recurring.label')}
+                    </FormLabel>
                     <FormDescription>
-                      {t('tasks.form.recurrenceEndDate.description')}
+                      {t('tasks.form.recurring.description')}
                     </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </FormGroup>
+
+          {isRecurring && (
+            <>
+              <FormGroup>
+                <FormField
+                  control={form.control}
+                  name="recurrencePattern"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('tasks.form.recurrencePattern.label')}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || undefined}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('tasks.form.recurrencePattern.placeholder')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {recurrencePatterns.map(pattern => (
+                            <SelectItem key={pattern} value={pattern}>
+                              {t(`tasks.recurrencePattern.${pattern}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        {t('tasks.form.recurrencePattern.description')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </FormGroup>
+
+              <FormGroup>
+                <FormField
+                  control={form.control}
+                  name="recurrenceEndDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('tasks.form.recurrenceEndDate.label')}</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full h-10 px-3 text-left font-normal bg-background",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(new Date(field.value), "PPP")
+                              ) : (
+                                <span>{t('tasks.form.recurrenceEndDate.placeholder')}</span>
+                              )}
+                              <CalendarIcon className={`h-4 w-4 opacity-50 ${isRTL ? 'mr-auto' : 'ml-auto'}`} />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align={isRTL ? "end" : "start"}>
+                          <Calendar
+                            mode="single"
+                            selected={field.value ? new Date(field.value) : undefined}
+                            onSelect={(date) => field.onChange(date?.toISOString() ?? null)}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormDescription>
+                        {t('tasks.form.recurrenceEndDate.description')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </FormGroup>
+            </>
           )}
-        </div>
+        </FormSection>
 
         <Button
           type="submit"
@@ -411,7 +429,7 @@ export function TaskForm({ currentUser }: TaskFormProps) {
             t('tasks.form.submit.default')
           )}
         </Button>
-      </form>
+      </FormLayout>
     </Form>
   );
 }
