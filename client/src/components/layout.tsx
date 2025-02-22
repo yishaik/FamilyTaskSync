@@ -27,11 +27,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           variant="inset" 
           className="backdrop-blur-sm w-full md:w-auto shrink-0"
         >
-          <SidebarHeader className="flex h-14 items-center justify-between border-b border-border/10 px-2 sm:px-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <ReadmeViewer />
-              <div className="h-4 w-[1px] bg-border/30 hidden sm:block" />
-              <div className="flex items-center space-x-2">
+          <SidebarHeader className="flex h-14 items-center px-2 sm:px-4 border-b border-border/10">
+            <div className="flex items-center justify-between w-full">
+              <ReadmeViewer className="shrink-0" />
+              <div className="flex items-center gap-2 shrink-0">
                 <ThemeToggle />
                 <Button
                   variant="ghost"
