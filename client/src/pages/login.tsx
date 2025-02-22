@@ -196,6 +196,10 @@ export default function LoginPage() {
                   value={otpCode}
                   onChange={(value) => setOtpCode(value)}
                   disabled={isLoading}
+                  id="otp"
+                  placeholder="○"
+                  pattern="\d*"
+                  inputType="tel"
                   render={({ slots }) => (
                     <InputOTPGroup>
                       {slots.map((slot, idx) => (
