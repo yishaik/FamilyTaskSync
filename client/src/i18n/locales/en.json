@@ -24,45 +24,49 @@
     "form": {
       "title": {
         "label": "Task Title",
-        "placeholder": "What needs to be done?",
-        "description": "Enter a clear, descriptive title for the task"
+        "placeholder": "Enter a clear title like 'Walk the dog' or 'Do homework'",
+        "description": "A short, clear title helps everyone understand the task quickly"
       },
       "description": {
-        "label": "Description (Optional)",
-        "placeholder": "Add some details about what needs to be done...",
-        "description": "Include any additional details that would help complete the task"
+        "label": "Description",
+        "placeholder": "Add helpful details like 'Walk the dog for 20 minutes around the park' or 'Math homework pages 12-15'",
+        "description": "Extra details help family members complete the task correctly"
       },
       "priority": {
-        "label": "Priority Level",
-        "description": "Set the importance level of this task",
-        "placeholder": "Select priority"
+        "label": "How Important Is This?",
+        "description": "This helps family members know which tasks to do first",
+        "placeholder": "Choose importance level"
       },
       "assignTo": {
-        "label": "Assign To",
-        "placeholder": "Select family member",
-        "description": "Choose who should complete this task",
-        "unassigned": "Unassigned"
+        "label": "Who Should Do This?",
+        "placeholder": "Pick a family member",
+        "description": "Choose who will be responsible for this task",
+        "unassigned": "Anyone can do it"
       },
       "dueDate": {
-        "label": "Due Date",
-        "description": "When does this task need to be completed?"
+        "label": "When Does This Need to Be Done?",
+        "placeholder": "Pick a due date",
+        "description": "The date when this task should be finished"
       },
       "reminder": {
-        "label": "Set Reminder",
-        "description": "When should we remind you about this task?"
+        "label": "When Should We Send a Reminder?",
+        "timeLabel": "Reminder Time",
+        "placeholder": "Choose when to be reminded",
+        "description": "We'll send a friendly reminder at this time"
       },
       "recurring": {
-        "label": "Recurring Task",
-        "description": "Does this task repeat on a schedule?"
+        "label": "Does This Task Repeat?",
+        "description": "For tasks that need to be done regularly"
       },
       "recurrencePattern": {
-        "label": "Repeat",
-        "placeholder": "Select how often the task repeats",
-        "description": "Choose how frequently this task should repeat"
+        "label": "How Often Does It Repeat?",
+        "placeholder": "Choose repeat pattern",
+        "description": "Select how often this task should be done again"
       },
       "recurrenceEndDate": {
-        "label": "Repeat Until",
-        "description": "When should this task stop repeating? (Optional)"
+        "label": "When Should It Stop Repeating?",
+        "placeholder": "Pick an end date (optional)",
+        "description": "Leave empty if the task should repeat indefinitely"
       },
       "submit": {
         "default": "Create Task",
@@ -76,14 +80,14 @@
       "unassigned": "Unassigned"
     },
     "priority": {
-      "low": "Low Priority",
-      "medium": "Medium Priority",
-      "high": "High Priority"
+      "low": "Can Wait",
+      "medium": "Important",
+      "high": "Urgent!"
     },
     "recurrencePattern": {
-      "daily": "Daily",
-      "weekly": "Weekly",
-      "monthly": "Monthly"
+      "daily": "Every Day",
+      "weekly": "Every Week",
+      "monthly": "Every Month"
     }
   },
   "notifications": {
