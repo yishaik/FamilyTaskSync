@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 const formatPhoneNumber = (phone: string) => {
   const cleaned = phone.replace(/[^\d+]/g, '');
@@ -18,17 +19,25 @@ export default function LoginPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { user, isLoading } = useAuth();
 
   const [step, setStep] = useState<'phone' | 'setup' | 'verify'>('phone');
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [qrCode, setQrCode] = useState<string>("");
   const [secretKey, setSecretKey] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Redirect to home if already logged in
+  useEffect(() => {
+    if (!isLoading && user) {
+      setLocation('/');
+    }
+  }, [user, isLoading, setLocation]);
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const formattedPhone = formatPhoneNumber(phoneNumber);
@@ -55,7 +64,7 @@ export default function LoginPage() {
         description: error instanceof Error ? error.message : t('auth.login.errors.userNotFound')
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -69,7 +78,7 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const formattedPhone = formatPhoneNumber(phoneNumber);
@@ -94,13 +103,17 @@ export default function LoginPage() {
       });
       setOtpCode('');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleSetupComplete = async () => {
     setStep('verify');
   };
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -126,15 +139,15 @@ export default function LoginPage() {
                 placeholder={t('auth.login.phoneNumber.placeholder')}
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
               <p className="text-sm text-muted-foreground">
                 {t('auth.login.phoneNumber.description')}
               </p>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting
                 ? t('common.loading')
                 : t('auth.login.buttons.continue')}
             </Button>
@@ -168,7 +181,7 @@ export default function LoginPage() {
             <Button
               onClick={handleSetupComplete}
               className="w-full"
-              disabled={isLoading}
+              disabled={isSubmitting}
             >
               {t('auth.login.setupQR.continueButton')}
             </Button>
@@ -195,7 +208,7 @@ export default function LoginPage() {
                   maxLength={6}
                   value={otpCode}
                   onChange={(value) => setOtpCode(value)}
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                   id="otp"
                   placeholder="○"
                   pattern="\d*"
@@ -219,9 +232,9 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full mt-6"
-              disabled={isLoading || otpCode.length !== 6}
+              disabled={isSubmitting || otpCode.length !== 6}
             >
-              {isLoading
+              {isSubmitting
                 ? t('common.loading')
                 : t('auth.login.buttons.verify')}
             </Button>
