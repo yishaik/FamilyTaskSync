@@ -1,11 +1,12 @@
 import { type User, type InsertUser, type Task, type InsertTask, type Notification, type InsertNotification, users, tasks, notifications } from "@shared/schema";
-import { db, sql } from "./db";
-import { eq } from "drizzle-orm";
+import { db } from "./db";
+import { eq, sql as drizzleSql } from "drizzle-orm";
 import { addDays, addWeeks, addMonths } from "date-fns";
 
 export interface IStorage {
   // Users
   getUsers(): Promise<User[]>;
+  getUserByPhone(phoneNumber: string): Promise<User | undefined>;
   getUser(id: number): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
@@ -29,6 +30,16 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   async getUsers(): Promise<User[]> {
     return await db.select().from(users);
+  }
+
+  async getUserByPhone(phoneNumber: string): Promise<User | undefined> {
+    // Ensure phone number format is correct
+    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.phoneNumber, formattedPhone));
+    return user;
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -82,44 +93,21 @@ export class DatabaseStorage implements IStorage {
       recurrenceEndDate: insertTask.recurrenceEndDate ? new Date(insertTask.recurrenceEndDate) : null,
     };
 
-    console.log('Storage: Processed task data:', {
-      ...taskData,
-      dueDate: taskData.dueDate?.toISOString(),
-      reminderTime: taskData.reminderTime?.toISOString(),
-      recurrenceEndDate: taskData.recurrenceEndDate?.toISOString(),
-    });
-
     const [task] = await db.insert(tasks).values(taskData).returning();
 
     if (task.isRecurring && task.recurrencePattern && task.dueDate) {
       await this.createRecurringTaskInstances(task);
     }
 
-    console.log('Storage: Task created:', {
-      id: task.id,
-      title: task.title,
-      reminderTime: task.reminderTime?.toISOString(),
-      assignedTo: task.assignedTo,
-      isRecurring: task.isRecurring
-    });
-
     return task;
   }
 
   async updateTask(id: number, updates: Partial<InsertTask>): Promise<Task> {
-    console.log('Storage: Updating task:', { id, updates });
-
     const updateData = {
       ...updates,
       dueDate: updates.dueDate ? new Date(updates.dueDate) : undefined,
       reminderTime: updates.reminderTime ? new Date(updates.reminderTime) : undefined,
     };
-
-    console.log('Storage: Processed update data:', {
-      ...updateData,
-      dueDate: updateData.dueDate?.toISOString(),
-      reminderTime: updateData.reminderTime?.toISOString(),
-    });
 
     const [task] = await db
       .update(tasks)
@@ -177,7 +165,7 @@ export class DatabaseStorage implements IStorage {
     const updates: any = {
       deliveryStatus: status,
       lastAttemptAt: new Date(),
-      deliveryAttempts: sql`delivery_attempts + 1`,
+      deliveryAttempts: drizzleSql`delivery_attempts + 1`,
     };
 
     if (messageSid) {
@@ -193,12 +181,14 @@ export class DatabaseStorage implements IStorage {
       .set(updates)
       .where(eq(notifications.id, id));
   }
+
   async getNotificationByMessageSid(messageSid: string): Promise<Notification[]> {
     return await db
       .select()
       .from(notifications)
       .where(eq(notifications.messageSid, messageSid));
   }
+
   async createRecurringTaskInstances(parentTask: Task): Promise<void> {
     if (!parentTask.dueDate || !parentTask.recurrencePattern || !parentTask.isRecurring) {
       return;
@@ -208,7 +198,6 @@ export class DatabaseStorage implements IStorage {
     let currentDate = new Date(parentTask.dueDate);
 
     while (currentDate <= endDate) {
-      // Calculate next occurrence based on pattern
       let nextDate: Date;
       switch (parentTask.recurrencePattern) {
         case 'daily':
@@ -224,7 +213,6 @@ export class DatabaseStorage implements IStorage {
           return;
       }
 
-      // Create the recurring instance
       const instanceData = {
         title: parentTask.title,
         description: parentTask.description,
@@ -236,7 +224,7 @@ export class DatabaseStorage implements IStorage {
           (new Date(parentTask.reminderTime).getTime() - new Date(parentTask.dueDate).getTime())
         ) : null,
         parentTaskId: parentTask.id,
-        isRecurring: false // Child instances are not themselves recurring
+        isRecurring: false
       };
 
       await db.insert(tasks).values(instanceData);

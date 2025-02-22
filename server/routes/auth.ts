@@ -13,9 +13,11 @@ router.post("/phone", async (req, res) => {
       return res.status(400).json({ message: "Phone number is required" });
     }
 
+    // Format phone number
+    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+
     // Find user by phone number
-    const users = await storage.getUsers();
-    const user = users.find(u => u.phoneNumber === phoneNumber);
+    const user = await storage.getUserByPhone(formattedPhone);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -29,7 +31,7 @@ router.post("/phone", async (req, res) => {
       });
 
       // Generate QR code
-      const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+      const qrCode = await QRCode.toDataURL(secret.otpauth_url!);
 
       // Save secret temporarily in session
       req.session.tempSecret = secret.base32;
@@ -59,9 +61,11 @@ router.post("/verify", async (req, res) => {
       return res.status(400).json({ message: "Phone number and code are required" });
     }
 
+    // Format phone number
+    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+
     // Find user
-    const users = await storage.getUsers();
-    const user = users.find(u => u.phoneNumber === phoneNumber);
+    const user = await storage.getUserByPhone(formattedPhone);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
