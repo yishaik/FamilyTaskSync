@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { Loader2 } from "lucide-react";
 
 const formatPhoneNumber = (phone: string) => {
   const cleaned = phone.replace(/[^\d+]/g, '');
@@ -28,12 +29,71 @@ export default function LoginPage() {
   const [secretKey, setSecretKey] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect to home if already logged in
   useEffect(() => {
     if (!isLoading && user) {
+      console.log("User is authenticated, redirecting to home:", user);
       setLocation('/');
     }
   }, [user, isLoading, setLocation]);
+
+  const handleVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.length !== 6) {
+      toast({
+        variant: "destructive",
+        description: t('auth.login.errors.invalidCode')
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const formattedPhone = formatPhoneNumber(phoneNumber);
+      console.log("Submitting verification:", { phoneNumber: formattedPhone, code: otpCode });
+
+      const res = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          phoneNumber: formattedPhone,
+          code: otpCode
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || t('auth.login.errors.invalidCode'));
+      }
+
+      console.log("Verification successful:", data);
+
+      // Clear all queries and force refetch auth status
+      await queryClient.clear();
+      await queryClient.resetQueries();
+
+      // Add a small delay to ensure session is saved
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Force a refetch of auth status
+      await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
+
+      // Redirect will be handled by the useEffect hook after auth state updates
+    } catch (error) {
+      console.error("Verification error:", error);
+      toast({
+        variant: "destructive",
+        description: error instanceof Error ? error.message : t('auth.login.errors.invalidCode')
+      });
+      setOtpCode('');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,66 +136,16 @@ export default function LoginPage() {
     }
   };
 
-  const handleVerifySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpCode || otpCode.length !== 6) {
-      toast({
-        variant: "destructive",
-        description: t('auth.login.errors.invalidCode')
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const formattedPhone = formatPhoneNumber(phoneNumber);
-      console.log("Submitting verification:", { phoneNumber: formattedPhone, code: otpCode });
-
-      const res = await fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          phoneNumber: formattedPhone,
-          code: otpCode
-        })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || t('auth.login.errors.invalidCode'));
-      }
-
-      // Clear all queries to ensure fresh state
-      await queryClient.clear();
-
-      // Invalidate the user query to trigger a refetch
-      await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-
-      // Use setLocation instead of window.location for SPA navigation
-      setLocation('/');
-    } catch (error) {
-      console.error("Verification error:", error);
-      toast({
-        variant: "destructive",
-        description: error instanceof Error ? error.message : t('auth.login.errors.invalidCode')
-      });
-      setOtpCode('');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleSetupComplete = () => {
     setStep('verify');
   };
 
   if (isLoading) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (

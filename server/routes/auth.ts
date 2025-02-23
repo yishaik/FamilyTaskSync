@@ -8,6 +8,12 @@ const router = Router();
 
 // Add a new endpoint to check user status
 router.get("/status", (req, res) => {
+  console.log("Auth status check:", {
+    sessionId: req.sessionID,
+    isAuthenticated: req.session.isAuthenticated,
+    userId: req.session.userId
+  });
+
   if (!req.session.isAuthenticated || !req.session.userId) {
     return res.status(401).json({
       authenticated: false,
@@ -131,10 +137,20 @@ router.post("/verify", async (req, res) => {
     req.session.userId = user.id;
 
     // Save session and ensure it's written before sending response
-    await saveSession(req);
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
 
     // Log the session state for debugging
     console.log("Session after verification:", {
+      sessionId: req.sessionID,
       userId: req.session.userId,
       isAuthenticated: req.session.isAuthenticated
     });

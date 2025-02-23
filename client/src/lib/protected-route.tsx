@@ -15,6 +15,7 @@ export function ProtectedRoute({ path, component: Component }: ProtectedRoutePro
   useEffect(() => {
     // Only redirect if we're not loading and there's no user
     if (!isLoading && !user) {
+      console.log("No authenticated user, redirecting to login");
       setLocation('/login');
     }
   }, [user, isLoading, setLocation]);

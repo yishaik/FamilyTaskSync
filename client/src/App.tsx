@@ -14,7 +14,11 @@ import { AuthProvider } from "./hooks/use-auth";
 function Router() {
   return (
     <Switch>
-      <Route path="/login" component={Login} />
+      <Route path="/login">
+        {(params) => (
+          <Login />
+        )}
+      </Route>
       <ProtectedRoute 
         path="/" 
         component={() => (
@@ -23,7 +27,9 @@ function Router() {
           </Layout>
         )} 
       />
-      <Route component={NotFound} />
+      <Route>
+        {() => <NotFound />}
+      </Route>
     </Switch>
   );
 }
