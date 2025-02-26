@@ -257,13 +257,13 @@ export function TaskList({ currentUser }: TaskListProps) {
   }
 
   return (
-    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {allBuckets.map(([userId, tasks]) => {
         const user = userId === 'unassigned' ? null : getAssignedUser(parseInt(userId));
 
         return (
-          <div key={userId} className="min-w-[300px]">
-            <div className="flex items-center gap-2 mb-4">
+          <div key={userId} className="w-full md:min-w-[300px]">
+            <div className="flex items-center gap-2 mb-4 p-2 bg-background rounded-lg shadow-sm">
               {user ? (
                 <>
                   <Avatar className="h-8 w-8">

@@ -70,6 +70,4 @@ export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
-export const taskPriorities = ["low", "medium", "high"] as const;
-export type TaskPriority = typeof taskPriorities[number];
 export const deliveryStatuses = ["pending", "sent", "delivered", "failed"] as const;
