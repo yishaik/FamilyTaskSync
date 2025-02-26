@@ -50,7 +50,8 @@
         "continue": "Continue",
         "verify": "Verify",
         "retry": "Try Again"
-      }
+      },
+      "securityNote": "Your security is important to us. We use two-factor authentication to protect your account."
     }
   },
   "tasks": {
@@ -143,6 +144,8 @@
     "everyone": "Everyone's Tasks",
     "reset": "Reset",
     "create": "Create",
-    "creating": "Creating..."
+    "creating": "Creating...",
+    "loading": "Loading...",
+    "back": "Back"
   }
 }
