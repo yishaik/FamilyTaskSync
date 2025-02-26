@@ -55,6 +55,8 @@
   },
   "tasks": {
     "form": {
+      "createTask": "Create New Task",
+      "createTaskDescription": "Add a new task for your family and manage responsibilities efficiently",
       "title": {
         "label": "Task Title",
         "placeholder": "Enter a clear title like 'Walk the dog' or 'Do homework'",
@@ -138,6 +140,9 @@
     }
   },
   "common": {
-    "everyone": "Everyone's Tasks"
+    "everyone": "Everyone's Tasks",
+    "reset": "Reset",
+    "create": "Create",
+    "creating": "Creating..."
   }
 }
