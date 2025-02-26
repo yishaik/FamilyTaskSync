@@ -48,6 +48,8 @@ export const insertUserSchema = createInsertSchema(users).extend({
 });
 
 export const recurrencePatterns = ["daily", "weekly", "monthly"] as const;
+export const taskPriorities = ["low", "medium", "high"] as const;
+export type TaskPriority = typeof taskPriorities[number];
 
 export const insertTaskSchema = createInsertSchema(tasks).extend({
   dueDate: z.string().nullable().optional(),
@@ -55,6 +57,7 @@ export const insertTaskSchema = createInsertSchema(tasks).extend({
   recurrencePattern: z.enum(recurrencePatterns).nullable().optional(),
   recurrenceEndDate: z.string().nullable().optional(),
   isRecurring: z.boolean().optional(),
+  priority: z.enum(taskPriorities).default("medium"),
 }).omit({ id: true, smsReminderSent: true, parentTaskId: true });
 
 export const insertNotificationSchema = createInsertSchema(notifications)
@@ -68,4 +71,5 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export const taskPriorities = ["low", "medium", "high"] as const;
+export type TaskPriority = typeof taskPriorities[number];
 export const deliveryStatuses = ["pending", "sent", "delivered", "failed"] as const;
