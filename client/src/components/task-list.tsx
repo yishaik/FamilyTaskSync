@@ -125,9 +125,15 @@ export function TaskList({ currentUser }: TaskListProps) {
   }
 
   const priorityColors = {
-    low: "bg-green-100 text-green-800",
-    medium: "bg-yellow-100 text-yellow-800",
-    high: "bg-red-100 text-red-800"
+    low: "bg-green-100 text-green-800 border-green-200",
+    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    high: "bg-red-100 text-red-800 border-red-200"
+  };
+  
+  const priorityIndicators = {
+    low: "bg-green-500",
+    medium: "bg-yellow-500",
+    high: "bg-red-500"
   };
 
   const getTaskStatus = (task: Task) => {
@@ -153,61 +159,89 @@ export function TaskList({ currentUser }: TaskListProps) {
       <Card
         key={task.id}
         className={cn(
-          "p-4 transition-colors",
-          task.completed ? "bg-gray-50" : "hover:bg-primary/5",
+          "transition-all relative overflow-hidden group",
+          task.completed ? "bg-gray-50/80" : "hover:bg-primary/5",
           isNextOccurrence && "border-l-4 border-l-blue-500"
         )}
       >
-        <div className="flex items-start gap-4">
-          <Checkbox
-            checked={task.completed}
-            onCheckedChange={() => toggleComplete(task)}
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                {task.title}
-              </h3>
-              {task.isRecurring && !isNextOccurrence && (
-                <RepeatIcon className="h-4 w-4 text-blue-500" />
-              )}
-            </div>
-            {task.description && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {task.description}
-              </p>
-            )}
-            <div className="flex gap-2 mt-2 flex-wrap">
-              <Badge variant="outline" className={priorityColors[task.priority as keyof typeof priorityColors]}>
-                {t(`tasks.priority.${task.priority}`)}
-              </Badge>
+        {/* Priority indicator */}
+        <div 
+          className={cn(
+            "absolute top-0 left-0 w-1 h-full",
+            priorityIndicators[task.priority as keyof typeof priorityIndicators]
+          )}
+        />
+        
+        <div className="p-4 pl-5">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              checked={task.completed}
+              onCheckedChange={() => toggleComplete(task)}
+              className="mt-0.5"
+            />
+            <div className="flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+                <h3 className={cn(
+                  "font-medium text-base transition-colors", 
+                  task.completed ? 'line-through text-muted-foreground' : ''
+                )}>
+                  {task.title}
+                  {task.isRecurring && !isNextOccurrence && (
+                    <RepeatIcon className="h-4 w-4 text-blue-500 inline-block ml-1 mb-0.5" />
+                  )}
+                </h3>
+                
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className={cn(
+                    "border py-0 px-2 h-5 text-xs", 
+                    priorityColors[task.priority as keyof typeof priorityColors]
+                  )}>
+                    {t(`tasks.priority.${task.priority}`)}
+                  </Badge>
 
-              {status && (
-                <Badge variant="outline" className={status.color}>
-                  {status.text}
-                </Badge>
+                  {status && (
+                    <Badge variant="outline" className={cn("border py-0 px-2 h-5 text-xs", status.color)}>
+                      {status.text}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              
+              {task.description && (
+                <p className="text-sm text-muted-foreground my-2 line-clamp-2 group-hover:line-clamp-none transition-all">
+                  {task.description}
+                </p>
               )}
+              
+              <div className="flex flex-wrap gap-1.5 mt-3 text-xs">
+                {task.isRecurring && task.recurrencePattern && !isNextOccurrence && (
+                  <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    <RepeatIcon className="h-3 w-3" />
+                    {t(`tasks.recurrencePattern.${task.recurrencePattern}`)}
+                  </div>
+                )}
 
-              {task.isRecurring && task.recurrencePattern && !isNextOccurrence && (
-                <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-800">
-                  <RepeatIcon className="h-3 w-3" />
-                  {t(`tasks.recurrencePattern.${task.recurrencePattern}`)}
-                </Badge>
-              )}
+                {zonedDueDate && (
+                  <div className="flex items-center gap-1 text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full ltr-text">
+                    <Calendar className="h-3 w-3" />
+                    {formatTz(zonedDueDate, 'MMM d', { timeZone })}
+                  </div>
+                )}
 
-              {zonedDueDate && (
-                <Badge variant="outline" className="flex items-center gap-1 ltr-text">
-                  <Calendar className="h-3 w-3" />
-                  Due {formatTz(zonedDueDate, 'MMM d', { timeZone })}
-                </Badge>
-              )}
-
-              {zonedReminderTime && (
-                <Badge variant="outline" className="flex items-center gap-1 ltr-text">
-                  <Bell className="h-3 w-3" />
-                  Reminder: {formatTz(zonedReminderTime, 'MMM d, h:mm a', { timeZone })}
-                </Badge>
-              )}
+                {zonedReminderTime && (
+                  <div className="flex items-center gap-1 text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full ltr-text">
+                    <Bell className="h-3 w-3" />
+                    {formatTz(zonedReminderTime, 'MMM d, h:mm a', { timeZone })}
+                  </div>
+                )}
+                
+                {assignedUser && (
+                  <div className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                    <UserIcon className="h-3 w-3" />
+                    {assignedUser.name}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -247,11 +281,22 @@ export function TaskList({ currentUser }: TaskListProps) {
 
   if (!hasAnyTasks) {
     return (
-      <Card className="p-8 flex flex-col items-center text-center text-muted-foreground">
-        <AlertCircle className="h-12 w-12 mb-4" />
-        <h3 className="font-medium text-lg">{t('app.noTasks.title')}</h3>
-        <p>{currentUser ? t('app.noTasks.userDescription', { name: currentUser.name }) : t('app.noTasks.description')}</p>
-        <p className="text-sm mt-2">{t('app.noTasks.cta')}</p>
+      <Card className="p-8 flex flex-col items-center text-center">
+        <div className="bg-primary/5 rounded-full p-6 mb-4">
+          <AlertCircle className="h-14 w-14 text-primary" />
+        </div>
+        <h3 className="font-semibold text-xl mb-2">{t('app.noTasks.title')}</h3>
+        <p className="text-muted-foreground max-w-md">
+          {currentUser ? t('app.noTasks.userDescription', { name: currentUser.name }) : t('app.noTasks.description')}
+        </p>
+        <div className="mt-6 mb-2 flex flex-col items-center">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 mb-2">
+            <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-primary">{t('app.noTasks.cta')}</p>
+        </div>
       </Card>
     );
   }

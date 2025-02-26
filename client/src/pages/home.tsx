@@ -16,13 +16,13 @@ export default function Home() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/95 p-3 md:p-6">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-background/80 backdrop-blur-sm p-4 rounded-lg shadow-sm border border-border/40">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             {t('app.title')}
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
             <NotificationBell currentUser={selectedUser} />
             <UserSwitcher
               users={users || []}
@@ -32,7 +32,7 @@ export default function Home() {
           </div>
         </div>
 
-        <Card className="p-6">
+        <Card className="p-4 md:p-6 shadow-md border-border/40">
           <TaskForm currentUser={selectedUser} />
         </Card>
 
